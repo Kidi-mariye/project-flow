@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import Calendar from 'react-calendar'
-import 'react-calendar/dist/Calendar.css'
 import {
   clearStoredToken,
   createCategory,
@@ -8,7 +6,7 @@ import {
   deleteCategory,
   deleteTask,
   fetchCategories,
-  fetchDashboardMetrics,
+  fetchCurrentUser,
   fetchFilteredTasks,
   getStoredToken,
   loginUser,
@@ -29,17 +27,15 @@ const REMINDER_OPTIONS = [
   { label: '7 days before', value: 7 },
 ]
 const SIDEBAR_LINKS = [
-  { id: 'section-reminders', label: 'Reminders' },
-  { id: 'section-metrics', label: 'Metrics Dashboard' },
-  { id: 'section-categories', label: 'Categories & Filters' },
-  { id: 'section-create-task', label: 'Create Task' },
-  { id: 'section-tasks', label: 'Your Tasks' },
-  { id: 'section-calendar', label: 'Calendar View' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'manage-tasks', label: 'Manage Tasks' },
+  { id: 'create-task', label: 'Create Task' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 function formatDateTime(value) {
   if (!value) {
-    return 'No deadline'
+    return 'N/A'
   }
 
   return new Date(value).toLocaleString()
@@ -53,10 +49,6 @@ function normalizeDateTimeForInput(value) {
   const date = new Date(value)
   const timezoneOffset = date.getTimezoneOffset() * 60000
   return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16)
-}
-
-function sameDate(left, right) {
-  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate()
 }
 
 function deriveReminderAt(dueDate, reminderDays) {
@@ -91,6 +83,18 @@ function getApiErrorMessage(error, fallbackMessage) {
   return fallbackMessage
 }
 
+function getTaskStatus(task) {
+  if (task.completed) {
+    return 'completed'
+  }
+
+  if (task.due_date) {
+    return 'inprogress'
+  }
+
+  return 'pending'
+}
+
 function App() {
   const [authMode, setAuthMode] = useState('login')
   const [authForm, setAuthForm] = useState({
@@ -110,11 +114,10 @@ function App() {
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#0b5fff', id: null })
   const [categories, setCategories] = useState([])
   const [filters, setFilters] = useState({ category_id: '', priority: '', completed: '' })
-  const [selectedDate, setSelectedDate] = useState(new Date())
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getStoredToken()))
+  const [currentUser, setCurrentUser] = useState(null)
   const [tasks, setTasks] = useState([])
-  const [metrics, setMetrics] = useState(null)
-  const [activeSection, setActiveSection] = useState(SIDEBAR_LINKS[0].id)
+  const [activePage, setActivePage] = useState('dashboard')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -125,50 +128,15 @@ function App() {
     }
   }, [isAuthenticated])
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return undefined
-    }
-
-    const sections = SIDEBAR_LINKS
-      .map((item) => document.getElementById(item.id))
-      .filter(Boolean)
-
-    if (sections.length === 0) {
-      return undefined
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries.filter((entry) => entry.isIntersecting)
-
-        if (visibleEntries.length > 0) {
-          setActiveSection(visibleEntries[0].target.id)
-        }
-      },
-      {
-        threshold: 0.25,
-        rootMargin: '-20% 0px -60% 0px',
-      },
-    )
-
-    sections.forEach((section) => observer.observe(section))
-
-    return () => {
-      sections.forEach((section) => observer.unobserve(section))
-      observer.disconnect()
-    }
-  }, [isAuthenticated])
-
   async function loadPlannerData(activeFilters = filters) {
     setIsLoading(true)
     setError('')
 
     try {
-      const [taskData, categoryData, metricData] = await Promise.all([
+      const [taskData, categoryData, userData] = await Promise.all([
         fetchFilteredTasks(activeFilters),
         fetchCategories(),
-        fetchDashboardMetrics(),
+        fetchCurrentUser(),
       ])
 
       let finalCategories = categoryData
@@ -179,9 +147,9 @@ function App() {
 
       setTasks(taskData)
       setCategories(finalCategories)
-      setMetrics(metricData)
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not load tasks. Please log in again.'))
+      setCurrentUser(userData)
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not load tasks. Please log in again.'))
     } finally {
       setIsLoading(false)
     }
@@ -198,23 +166,18 @@ function App() {
         password: authForm.password,
       }
 
-      let response
-
-      if (authMode === 'register') {
-        response = await registerUser({
-          ...payload,
-          name: authForm.name,
-        })
-      } else {
-        response = await loginUser(payload)
-      }
+      const response = authMode === 'register'
+        ? await registerUser({ ...payload, name: authForm.name })
+        : await loginUser(payload)
 
       setStoredToken(response.token)
+      setCurrentUser(response.user ?? null)
       setIsAuthenticated(true)
+      setActivePage('dashboard')
       setAuthForm({ name: '', email: '', password: '' })
       setMessage(authMode === 'register' ? 'Account created.' : 'Logged in successfully.')
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Authentication failed. Check your details and try again.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Authentication failed.'))
     }
   }
 
@@ -225,14 +188,15 @@ function App() {
     try {
       await logoutUser()
     } catch {
-      // Even if token is already invalid, clear local state.
+      // Keep local cleanup even if token is invalid.
     }
 
     clearStoredToken()
     setIsAuthenticated(false)
     setTasks([])
-      setCategories([])
-      setMetrics(null)
+    setCategories([])
+    setCurrentUser(null)
+    setActivePage('dashboard')
     setMessage('Logged out.')
   }
 
@@ -240,7 +204,6 @@ function App() {
     event.preventDefault()
     setMessage('')
     setError('')
-
     await loadPlannerData(filters)
   }
 
@@ -281,8 +244,8 @@ function App() {
 
       resetTaskForm()
       await loadPlannerData()
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not save task.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not save task.'))
     }
   }
 
@@ -307,7 +270,7 @@ function App() {
     setError('')
 
     try {
-      const updated = await updateTask(task.id, {
+      await updateTask(task.id, {
         title: task.title,
         description: task.description,
         category_id: task.category_id,
@@ -317,25 +280,23 @@ function App() {
         completed: !task.completed,
       })
 
-      setTasks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
       await loadPlannerData()
       setMessage('Task updated.')
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not update task.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not update task.'))
     }
   }
 
-  async function handleDeleteTask(taskId) {
+  async function handleDeleteTask(task) {
     setMessage('')
     setError('')
 
     try {
-      await deleteTask(taskId)
-      setTasks((prev) => prev.filter((task) => task.id !== taskId))
+      await deleteTask(task.id)
       await loadPlannerData()
       setMessage('Task deleted.')
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not delete task.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not delete task.'))
     }
   }
 
@@ -361,8 +322,8 @@ function App() {
 
       setCategoryForm({ name: '', color: '#0b5fff', id: null })
       await loadPlannerData()
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not save category.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not save category.'))
     }
   }
 
@@ -382,8 +343,8 @@ function App() {
       await deleteCategory(categoryId)
       await loadPlannerData()
       setMessage('Category deleted.')
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not delete category. Remove linked tasks first or reassign them.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not delete category.'))
     }
   }
 
@@ -396,20 +357,59 @@ function App() {
       setCategories(seeded)
       await loadPlannerData()
       setMessage('Default project categories added.')
-    } catch (error) {
-      setError(getApiErrorMessage(error, 'Could not add default project categories.'))
+    } catch (apiError) {
+      setError(getApiErrorMessage(apiError, 'Could not add default project categories.'))
     }
   }
 
-  const reminders = useMemo(
-    () => tasks.filter((task) => !task.completed && task.reminder_at && new Date(task.reminder_at) <= new Date()),
+  const allTasks = useMemo(
+    () => [...tasks].sort((left, right) => new Date(right.created_at) - new Date(left.created_at)),
     [tasks],
   )
 
-  const selectedDateTasks = useMemo(
-    () => tasks.filter((task) => task.due_date && sameDate(new Date(task.due_date), selectedDate)),
-    [tasks, selectedDate],
-  )
+  const completedTasks = useMemo(() => allTasks.filter((task) => task.completed), [allTasks])
+  const inProgressTasks = useMemo(() => allTasks.filter((task) => !task.completed && task.due_date), [allTasks])
+  const todoTasks = useMemo(() => allTasks.filter((task) => !task.completed && !task.due_date), [allTasks])
+
+  const priorityChartRows = useMemo(() => {
+    const rows = [
+      {
+        label: 'High',
+        value: allTasks.filter((task) => (task.priority || 'medium') === 'high').length,
+        color: '#dc2626',
+      },
+      {
+        label: 'Medium',
+        value: allTasks.filter((task) => (task.priority || 'medium') === 'medium').length,
+        color: '#d97706',
+      },
+      {
+        label: 'Low',
+        value: allTasks.filter((task) => (task.priority || 'medium') === 'low').length,
+        color: '#16a34a',
+      },
+    ]
+
+    const maxValue = Math.max(...rows.map((row) => row.value), 1)
+
+    return rows.map((row) => ({
+      ...row,
+      percent: Math.round((row.value / maxValue) * 100),
+    }))
+  }, [allTasks])
+
+  const taskDistribution = useMemo(() => {
+    const total = Math.max(allTasks.length, 1)
+    const completedPercent = Math.round((completedTasks.length / total) * 100)
+    const inProgressPercent = Math.round((inProgressTasks.length / total) * 100)
+    const todoPercent = Math.max(0, 100 - completedPercent - inProgressPercent)
+
+    return {
+      completedPercent,
+      inProgressPercent,
+      todoPercent,
+    }
+  }, [allTasks.length, completedTasks.length, inProgressTasks.length])
 
   return (
     <main className="app-shell">
@@ -418,11 +418,6 @@ function App() {
           <p className="eyebrow">Task Manager</p>
           <h1>React + Laravel API</h1>
         </div>
-        {isAuthenticated ? (
-          <button type="button" className="btn ghost" onClick={handleLogout}>
-            Logout
-          </button>
-        ) : null}
       </header>
 
       {message ? <p className="notice ok">{message}</p> : null}
@@ -494,197 +489,254 @@ function App() {
               <ul className="sidebar-nav">
                 {SIDEBAR_LINKS.map((item) => (
                   <li key={item.id}>
-                    <a
-                      href={`#${item.id}`}
-                      className={activeSection === item.id ? 'active' : ''}
-                      onClick={() => setActiveSection(item.id)}
+                    <button
+                      type="button"
+                      className={activePage === item.id ? 'active' : ''}
+                      onClick={() => setActivePage(item.id)}
                     >
                       {item.label}
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>
             </nav>
+
+            <div className="sidebar-actions">
+              <button type="button" className="btn danger" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
           </aside>
 
           <div className="dashboard-content">
-            <section id="section-reminders" className="panel reminder-panel">
-              <h2>Reminders</h2>
-              {reminders.length === 0 ? <p>No reminders right now.</p> : null}
-              <ul className="reminder-list">
-                {reminders.map((task) => (
-                  <li key={task.id}>
-                    <strong>{task.title}</strong> reminder triggered for {formatDateTime(task.reminder_at)}
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {activePage === 'dashboard' ? (
+              <section className="panel">
+              <h2>Dashboard</h2>
+              <p className="dashboard-greeting">Good Morning, {currentUser?.name || 'User'}</p>
 
-            <section id="section-metrics" className="panel metrics-grid">
-              <div className="metric-card">
-                <p>Total Tasks</p>
-                <h3>{metrics?.total_tasks ?? 0}</h3>
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <p>Total Tasks</p>
+                  <h3>{allTasks.length}</h3>
+                </div>
+                <div className="metric-card">
+                  <p>Completed</p>
+                  <h3>{completedTasks.length}</h3>
+                </div>
+                <div className="metric-card">
+                  <p>Inprogress</p>
+                  <h3>{inProgressTasks.length}</h3>
+                </div>
+                <div className="metric-card">
+                  <p>Todo</p>
+                  <h3>{todoTasks.length}</h3>
+                </div>
               </div>
-              <div className="metric-card">
-                <p>Completed</p>
-                <h3>{metrics?.completed_tasks ?? 0}</h3>
-              </div>
-              <div className="metric-card">
-                <p>Active Courses</p>
-                <h3>{metrics?.active_courses ?? 0}</h3>
-              </div>
-              <div className="metric-card">
-                <p>Upcoming Deadlines (7 days)</p>
-                <h3>{metrics?.upcoming_deadlines ?? 0}</h3>
-              </div>
-            </section>
 
-            <section id="section-create-task" className="panel">
-            <h2>{editingTaskId ? 'Edit Task' : 'Create Task'}</h2>
-            <form className="form-grid" onSubmit={handleCreateTask}>
-              <label>
-                Title
-                <input
-                  type="text"
-                  value={taskForm.title}
-                  onChange={(event) => setTaskForm((prev) => ({ ...prev, title: event.target.value }))}
-                  required
-                />
-              </label>
-
-              <label>
-                Description
-                <textarea
-                  value={taskForm.description}
-                  onChange={(event) =>
-                    setTaskForm((prev) => ({ ...prev, description: event.target.value }))
-                  }
-                  rows={3}
-                />
-              </label>
-
-              <label>
-                Category
-                <select
-                  value={taskForm.category_id}
-                  onChange={(event) => setTaskForm((prev) => ({ ...prev, category_id: event.target.value }))}
-                >
-                  <option value="">Uncategorized</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Priority
-                <select
-                  value={taskForm.priority}
-                  onChange={(event) => setTaskForm((prev) => ({ ...prev, priority: event.target.value }))}
-                >
-                  {PRIORITY_OPTIONS.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {priority}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                Due Date
-                <input
-                  type="datetime-local"
-                  value={taskForm.due_date}
-                  onChange={(event) => setTaskForm((prev) => ({ ...prev, due_date: event.target.value }))}
-                />
-              </label>
-
-              <label>
-                Reminder
-                <select
-                  value={taskForm.reminder_days}
-                  onChange={(event) => setTaskForm((prev) => ({ ...prev, reminder_days: Number(event.target.value) }))}
-                >
-                  {REMINDER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="actions-row">
-                <button type="submit" className="btn primary">
-                  {editingTaskId ? 'Save Changes' : 'Add Task'}
-                </button>
-                {editingTaskId ? (
-                  <button type="button" className="btn ghost" onClick={resetTaskForm}>
-                    Cancel Edit
-                  </button>
-                ) : null}
-              </div>
-            </form>
-            </section>
-
-            <section id="section-tasks" className="panel">
-            <h2>Your Tasks</h2>
-            {isLoading ? <p>Loading...</p> : null}
-
-            {!isLoading && tasks.length === 0 ? <p>No tasks yet.</p> : null}
-
-            <ul className="task-list">
-              {tasks.map((task) => (
-                <li
-                  key={task.id}
-                  className={`task-item ${task.completed ? 'is-complete' : ''} ${!task.completed && task.due_date && new Date(task.due_date) < new Date() ? 'is-overdue' : ''}`}
-                >
-                  <div>
-                    <h3 className={task.completed ? 'done' : ''}>{task.title}</h3>
-                    <p>{task.description || 'No description'}</p>
-                    <p>
-                      <strong>Course:</strong> {task.category?.name || 'Uncategorized'}
-                    </p>
-                    <p>
-                      <strong>Due:</strong> {formatDateTime(task.due_date)}
-                    </p>
-                    <p>
-                      <strong>Priority:</strong> <span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span>
-                    </p>
-                  </div>
-
-                  <div className="actions">
-                    <button type="button" className="btn ghost" onClick={() => startEditTask(task)}>
-                      Edit
-                    </button>
-                    <button type="button" className="btn ghost" onClick={() => handleToggleTask(task)}>
-                      {task.completed ? 'Mark Incomplete' : 'Mark Complete'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn danger"
-                      onClick={() => handleDeleteTask(task.id)}
+              <div className="dashboard-charts two-col">
+                <div className="dashboard-chart panel-soft">
+                  <h3>Task Distribution</h3>
+                  <div className="distribution-wrap">
+                    <div
+                      className="distribution-circle"
+                      style={{
+                        background: `conic-gradient(#16a34a 0 ${taskDistribution.completedPercent}%, #d97706 ${taskDistribution.completedPercent}% ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}%, #7c3aed ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}% 100%)`,
+                      }}
                     >
-                      Delete
-                    </button>
+                      <span>{allTasks.length}</span>
+                    </div>
+                    <ul className="distribution-legend">
+                      <li><span className="legend-dot completed" />Completed ({completedTasks.length})</li>
+                      <li><span className="legend-dot inprogress" />Inprogress ({inProgressTasks.length})</li>
+                      <li><span className="legend-dot todo" />Todo ({todoTasks.length})</li>
+                    </ul>
                   </div>
-                </li>
-              ))}
-            </ul>
-            </section>
+                </div>
 
-            <section id="section-categories" className="panel two-col">
-            <div>
-              <h2>Categories / Courses</h2>
-              <div className="actions-row" style={{ marginBottom: 12 }}>
+                <div className="dashboard-chart panel-soft">
+                  <h3>Priority Bar Graph</h3>
+                  <ul className="chart-list">
+                    {priorityChartRows.map((row) => (
+                      <li key={row.label}>
+                        <span className="chart-label">{row.label}</span>
+                        <div className="chart-bar-track">
+                          <div className="chart-bar-fill" style={{ width: `${row.percent}%`, background: row.color }} />
+                        </div>
+                        <span className="chart-value">{row.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="dashboard-table panel-soft">
+                <h3>Tasks Table</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Task Title</th>
+                      <th>Priority</th>
+                      <th>Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allTasks.slice(0, 10).map((task) => (
+                      <tr key={task.id}>
+                        <td>{task.title}</td>
+                        <td><span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span></td>
+                        <td>{formatDateTime(task.created_at)}</td>
+                      </tr>
+                    ))}
+                    {allTasks.length === 0 ? (
+                      <tr>
+                        <td colSpan={3}>No tasks yet.</td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+              </section>
+            ) : null}
+
+            {activePage === 'manage-tasks' ? (
+              <section className="panel">
+                <h2>Manage Tasks</h2>
+
+                {isLoading ? <p>Loading...</p> : null}
+                {!isLoading && allTasks.length === 0 ? <p>No tasks yet.</p> : null}
+
+                <div className="manage-grid">
+                  {allTasks.map((task) => (
+                    <article key={task.id} className="manage-card">
+                      <h3>{task.title}</h3>
+                      <p>
+                        <strong>Priority:</strong>{' '}
+                        <span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span>
+                      </p>
+                      <p>
+                        <strong>Status:</strong>{' '}
+                        <span className={`status-badge ${getTaskStatus(task)}`}>{getTaskStatus(task)}</span>
+                      </p>
+                      <div className="actions-row">
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => {
+                            startEditTask(task)
+                            setActivePage('create-task')
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button type="button" className="btn ghost" onClick={() => handleToggleTask(task)}>
+                          {task.completed ? 'Mark Incomplete' : 'Mark Complete'}
+                        </button>
+                        <button type="button" className="btn danger" onClick={() => handleDeleteTask(task)}>
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {activePage === 'create-task' ? (
+              <section className="panel">
+              <h2>{editingTaskId ? 'Edit Task' : 'Create Task'}</h2>
+              <form className="form-grid" onSubmit={handleCreateTask}>
+                <label>
+                  Title
+                  <input
+                    type="text"
+                    value={taskForm.title}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, title: event.target.value }))}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Description
+                  <textarea
+                    value={taskForm.description}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, description: event.target.value }))}
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  Category
+                  <select
+                    value={taskForm.category_id}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, category_id: event.target.value }))}
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Priority
+                  <select
+                    value={taskForm.priority}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, priority: event.target.value }))}
+                  >
+                    {PRIORITY_OPTIONS.map((priority) => (
+                      <option key={priority} value={priority}>{priority}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Due Date
+                  <input
+                    type="datetime-local"
+                    value={taskForm.due_date}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, due_date: event.target.value }))}
+                  />
+                </label>
+
+                <label>
+                  Reminder
+                  <select
+                    value={taskForm.reminder_days}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, reminder_days: Number(event.target.value) }))}
+                  >
+                    {REMINDER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="actions-row">
+                  <button type="submit" className="btn primary">
+                    {editingTaskId ? 'Save Changes' : 'Add Task'}
+                  </button>
+                  {editingTaskId ? (
+                    <button type="button" className="btn ghost" onClick={resetTaskForm}>
+                      Cancel Edit
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+              </section>
+            ) : null}
+
+            {activePage === 'settings' ? (
+              <section className="panel">
+              <h2>Settings</h2>
+              <div className="actions-row">
                 <button type="button" className="btn ghost" onClick={handleSeedDefaultCategories}>
                   Add Project Default Categories
                 </button>
               </div>
+
+              <h3 style={{ marginTop: 16, marginBottom: 8 }}>Manage Categories</h3>
               <form className="form-grid" onSubmit={handleCategorySubmit}>
                 <label>
-                  Course Name
+                  Category Name
                   <input
                     type="text"
                     value={categoryForm.name}
@@ -716,7 +768,7 @@ function App() {
                 </div>
               </form>
 
-              <ul className="category-list">
+              <ul className="category-list" style={{ marginTop: 12 }}>
                 {categories.map((category) => (
                   <li key={category.id}>
                     <span className="category-dot" style={{ background: category.color }} />
@@ -731,101 +783,8 @@ function App() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div>
-              <h2>Task Filters</h2>
-              <form className="form-grid" onSubmit={handleApplyFilters}>
-                <label>
-                  Category
-                  <select
-                    value={filters.category_id}
-                    onChange={(event) => setFilters((prev) => ({ ...prev, category_id: event.target.value }))}
-                  >
-                    <option value="">All categories</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Priority
-                  <select
-                    value={filters.priority}
-                    onChange={(event) => setFilters((prev) => ({ ...prev, priority: event.target.value }))}
-                  >
-                    <option value="">All priorities</option>
-                    {PRIORITY_OPTIONS.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Status
-                  <select
-                    value={filters.completed}
-                    onChange={(event) => setFilters((prev) => ({ ...prev, completed: event.target.value }))}
-                  >
-                    <option value="">All</option>
-                    <option value="false">Pending</option>
-                    <option value="true">Completed</option>
-                  </select>
-                </label>
-
-                <div className="actions-row">
-                  <button type="submit" className="btn primary">Apply Filters</button>
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    onClick={() => {
-                      const reset = { category_id: '', priority: '', completed: '' }
-                      setFilters(reset)
-                      void loadPlannerData(reset)
-                    }}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </form>
-            </div>
-            </section>
-
-            <section id="section-calendar" className="panel two-col">
-            <div>
-              <h2>Calendar View</h2>
-              <Calendar
-                onChange={(value) => setSelectedDate(value)}
-                value={selectedDate}
-                tileContent={({ date, view }) => {
-                  if (view !== 'month') {
-                    return null
-                  }
-
-                  const count = tasks.filter((task) => task.due_date && sameDate(new Date(task.due_date), date)).length
-                  return count > 0 ? <span className="day-count">{count}</span> : null
-                }}
-              />
-            </div>
-
-            <div>
-              <h2>Deadlines on {selectedDate.toLocaleDateString()}</h2>
-              {selectedDateTasks.length === 0 ? <p>No deadlines.</p> : null}
-              <ul className="deadline-list">
-                {selectedDateTasks.map((task) => (
-                  <li key={task.id}>
-                    <span>{task.title}</span>
-                    <span className={`priority ${task.priority}`}>{task.priority}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            </section>
+              </section>
+            ) : null}
           </div>
         </div>
       )}

@@ -107,3 +107,8 @@ export async function fetchDashboardMetrics() {
   const { data } = await api.get('/dashboard/metrics', { headers: authHeaders() })
   return data
 }
+
+export async function fetchCurrentUser() {
+  const { data } = await api.get('/user', { headers: authHeaders() })
+  return data
+}
