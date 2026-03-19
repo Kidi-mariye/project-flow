@@ -872,19 +872,18 @@ function App() {
                     <article key={task.id} className="manage-card">
                       <div className="manage-card-header">
                         <h3 className="manage-card-title">{task.title}</h3>
-                        <span className={`status-badge ${getTaskStatus(task)}`}>{getTaskStatus(task)}</span>
+                        <div className="manage-card-badges">
+                          <span className={`status-badge ${getTaskStatus(task)}`}>{getTaskStatus(task)}</span>
+                          <span className={`priority-badge ${task.priority || 'medium'}`}>{task.priority || 'medium'}</span>
+                        </div>
                       </div>
 
                       <p className="manage-card-description">{task.description || 'No description provided.'}</p>
 
                       <div className="manage-card-meta">
                         <div>
-                          <span className="meta-label">Priority</span>
-                          <span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span>
-                        </div>
-                        <div>
-                          <span className="meta-label">Category</span>
-                          <span className="meta-value">{task.category?.name || 'Uncategorized'}</span>
+                          <span className="meta-label">Created</span>
+                          <span className="meta-value">{formatDateBySettings(task.created_at)}</span>
                         </div>
                         <div>
                           <span className="meta-label">Due</span>
@@ -895,7 +894,8 @@ function App() {
                       <div className="actions-row manage-card-actions">
                         <button
                           type="button"
-                          className="btn ghost"
+                          className="btn ghost manage-action-btn"
+                          data-icon="E"
                           onClick={() => {
                             startEditTask(task)
                             setActivePage('create-task')
@@ -903,10 +903,20 @@ function App() {
                         >
                           Edit
                         </button>
-                        <button type="button" className="btn ghost" onClick={() => handleToggleTask(task)}>
-                          {task.completed ? 'Mark Incomplete' : 'Mark Complete'}
+                        <button
+                          type="button"
+                          className="btn ghost manage-action-btn"
+                          data-icon="S"
+                          onClick={() => handleToggleTask(task)}
+                        >
+                          {task.completed ? 'Undo' : 'Done'}
                         </button>
-                        <button type="button" className="btn danger" onClick={() => handleDeleteTask(task)}>
+                        <button
+                          type="button"
+                          className="btn danger manage-action-btn"
+                          data-icon="D"
+                          onClick={() => handleDeleteTask(task)}
+                        >
                           Delete
                         </button>
                       </div>
