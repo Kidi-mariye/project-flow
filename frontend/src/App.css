@@ -76,7 +76,7 @@ body.theme-custom {
   margin-bottom: 18px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 0;
   padding: 14px 16px;
   box-shadow: var(--shadow-soft);
 }
@@ -84,8 +84,8 @@ body.theme-custom {
 .project-flow-title {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  letter-spacing: normal;
   color: #0f172a;
 }
 
@@ -451,12 +451,65 @@ h2 {
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
 }
 
-.manage-card p {
-  margin: 8px 0;
+.manage-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.manage-card-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.manage-card-description {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.manage-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.manage-card-meta > div {
+  display: grid;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.meta-value {
+  font-size: 0.86rem;
   color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manage-card-actions {
+  margin-top: 2px;
 }
 
 .status-badge {
@@ -741,6 +794,10 @@ textarea {
   .manage-grid {
     grid-template-columns: 1fr;
   }
+
+  .manage-card-meta {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -763,6 +820,10 @@ textarea {
   }
 
   .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-card-meta {
     grid-template-columns: 1fr;
   }
 

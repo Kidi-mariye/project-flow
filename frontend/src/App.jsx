@@ -664,7 +664,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <h1 className="project-flow-title">Project Flow</h1>
+        <h1 className="project-flow-title">Good morning, mari</h1>
       </header>
 
       {message ? <p className="notice ok">{message}</p> : null}
@@ -782,7 +782,6 @@ function App() {
           <div className="dashboard-content">
             {activePage === 'dashboard' ? (
               <section className="page-section">
-              <h2>Dashboard</h2>
               <p className="dashboard-greeting">Good Morning, {currentUser?.name || 'User'}</p>
 
               <div className="metrics-grid">
@@ -871,16 +870,29 @@ function App() {
                 <div className="manage-grid">
                   {allTasks.map((task) => (
                     <article key={task.id} className="manage-card">
-                      <h3>{task.title}</h3>
-                      <p>
-                        <strong>Priority:</strong>{' '}
-                        <span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span>
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{' '}
+                      <div className="manage-card-header">
+                        <h3 className="manage-card-title">{task.title}</h3>
                         <span className={`status-badge ${getTaskStatus(task)}`}>{getTaskStatus(task)}</span>
-                      </p>
-                      <div className="actions-row">
+                      </div>
+
+                      <p className="manage-card-description">{task.description || 'No description provided.'}</p>
+
+                      <div className="manage-card-meta">
+                        <div>
+                          <span className="meta-label">Priority</span>
+                          <span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span>
+                        </div>
+                        <div>
+                          <span className="meta-label">Category</span>
+                          <span className="meta-value">{task.category?.name || 'Uncategorized'}</span>
+                        </div>
+                        <div>
+                          <span className="meta-label">Due</span>
+                          <span className="meta-value">{formatDateBySettings(task.due_date)}</span>
+                        </div>
+                      </div>
+
+                      <div className="actions-row manage-card-actions">
                         <button
                           type="button"
                           className="btn ghost"
