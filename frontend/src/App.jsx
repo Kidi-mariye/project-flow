@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js'
+import { Bar } from 'react-chartjs-2'
+import {
   clearStoredToken,
-  createCategory,
   createTask,
-  deleteCategory,
   deleteTask,
   fetchCategories,
   fetchCurrentUser,
@@ -14,12 +21,14 @@ import {
   registerUser,
   seedDefaultCategories,
   setStoredToken,
-  updateCategory,
   updateTask,
 } from './api'
 import './App.css'
 
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+
 const PRIORITY_OPTIONS = ['high', 'medium', 'low']
+const STATUS_OPTIONS = ['completed', 'inprogress', 'todo']
 const REMINDER_OPTIONS = [
   { label: 'No reminder', value: 0 },
   { label: '1 day before', value: 1 },
@@ -28,10 +37,65 @@ const REMINDER_OPTIONS = [
 ]
 const SIDEBAR_LINKS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'manage-tasks', label: 'Manage Tasks' },
-  { id: 'create-task', label: 'Create Task' },
+  { id: 'manage-tasks', label: 'Manage Projects' },
+  { id: 'create-task', label: 'Add Project' },
   { id: 'settings', label: 'Settings' },
 ]
+const PROFILE_IMAGES_KEY = 'task_manager_profile_images'
+const SETTINGS_STORAGE_KEY = 'project_flow_settings'
+
+const DEFAULT_SETTINGS = {
+  general: {
+    languageRegion: 'English (US)',
+    timeFormat: '24h',
+    theme: 'light',
+  },
+  projects: {
+    defaultPriority: 'medium',
+    defaultDueDate: 'none',
+    customStatuses: 'todo, inprogress, completed',
+    recurringTaskOption: 'weekly',
+  },
+  notifications: {
+    enabled: true,
+    reminderTiming: '10',
+    quietHoursStart: '22:00',
+    quietHoursEnd: '07:00',
+    channels: {
+      email: true,
+      sms: false,
+      push: true,
+    },
+  },
+  collaboration: {
+    projectVisibility: 'private',
+    allowComments: true,
+    shareByLink: false,
+  },
+  account: {
+    name: '',
+    email: '',
+    avatarUrl: '',
+    twoFactorEnabled: false,
+    loginMethod: 'password',
+    connectedAccounts: {
+      google: false,
+      microsoft: false,
+      github: false,
+    },
+  },
+  dataSecurity: {
+    backupRestore: 'manual',
+    cloudSync: 'none',
+    retentionDays: '0',
+    encryptionLevel: 'standard',
+  },
+  advanced: {
+    developerMode: false,
+    apiAccess: false,
+    betaFeatures: false,
+  },
+}
 
 function formatDateTime(value) {
   if (!value) {
@@ -83,6 +147,78 @@ function getApiErrorMessage(error, fallbackMessage) {
   return fallbackMessage
 }
 
+async function fileToDataUrl(file) {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function getProfileImageMap() {
+  try {
+    const raw = localStorage.getItem(PROFILE_IMAGES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function getProfileImageForEmail(email) {
+  if (!email) {
+    return ''
+  }
+
+  const map = getProfileImageMap()
+  return map[email] || ''
+}
+
+function saveProfileImageForEmail(email, imageDataUrl) {
+  if (!email || !imageDataUrl) {
+    return
+  }
+
+  const map = getProfileImageMap()
+  map[email] = imageDataUrl
+  localStorage.setItem(PROFILE_IMAGES_KEY, JSON.stringify(map))
+}
+
+function getStoredSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
+
+    if (!raw) {
+      return DEFAULT_SETTINGS
+    }
+
+    const parsed = JSON.parse(raw)
+
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      notifications: {
+        ...DEFAULT_SETTINGS.notifications,
+        ...parsed.notifications,
+        channels: {
+          ...DEFAULT_SETTINGS.notifications.channels,
+          ...parsed.notifications?.channels,
+        },
+      },
+      account: {
+        ...DEFAULT_SETTINGS.account,
+        ...parsed.account,
+        connectedAccounts: {
+          ...DEFAULT_SETTINGS.account.connectedAccounts,
+          ...parsed.account?.connectedAccounts,
+        },
+      },
+    }
+  } catch {
+    return DEFAULT_SETTINGS
+  }
+}
+
 function getTaskStatus(task) {
   if (task.completed) {
     return 'completed'
@@ -92,7 +228,7 @@ function getTaskStatus(task) {
     return 'inprogress'
   }
 
-  return 'pending'
+  return 'todo'
 }
 
 function App() {
@@ -102,22 +238,26 @@ function App() {
     email: '',
     password: '',
   })
+  const [registerImageFile, setRegisterImageFile] = useState(null)
+  const [registerImagePreview, setRegisterImagePreview] = useState('')
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
     category_id: '',
     priority: 'medium',
+    status: 'todo',
     due_date: '',
     reminder_days: 0,
   })
   const [editingTaskId, setEditingTaskId] = useState(null)
-  const [categoryForm, setCategoryForm] = useState({ name: '', color: '#0b5fff', id: null })
   const [categories, setCategories] = useState([])
-  const [filters, setFilters] = useState({ category_id: '', priority: '', completed: '' })
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(getStoredToken()))
   const [currentUser, setCurrentUser] = useState(null)
+  const [profileImage, setProfileImage] = useState('')
   const [tasks, setTasks] = useState([])
   const [activePage, setActivePage] = useState('dashboard')
+  const [settings, setSettings] = useState(() => getStoredSettings())
+  const [savedSettings, setSavedSettings] = useState(() => getStoredSettings())
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -128,13 +268,104 @@ function App() {
     }
   }, [isAuthenticated])
 
-  async function loadPlannerData(activeFilters = filters) {
+  useEffect(() => {
+    const theme = savedSettings.general.theme || 'light'
+    document.body.classList.remove('theme-light', 'theme-dark', 'theme-custom')
+    document.body.classList.add(`theme-${theme}`)
+
+    return () => {
+      document.body.classList.remove('theme-light', 'theme-dark', 'theme-custom')
+    }
+  }, [savedSettings.general.theme])
+
+  useEffect(() => {
+    if (!currentUser) {
+      return
+    }
+
+    setSettings((prev) => ({
+      ...prev,
+      account: {
+        ...prev.account,
+        name: prev.account.name || currentUser.name || '',
+        email: prev.account.email || currentUser.email || '',
+      },
+    }))
+
+    setSavedSettings((prev) => ({
+      ...prev,
+      account: {
+        ...prev.account,
+        name: prev.account.name || currentUser.name || '',
+        email: prev.account.email || currentUser.email || '',
+      },
+    }))
+  }, [currentUser])
+
+  function updateSettingsSection(section, key, value) {
+    setSettings((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [key]: value,
+      },
+    }))
+  }
+
+  function updateNestedSettingsSection(section, nestedSection, key, value) {
+    setSettings((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [nestedSection]: {
+          ...prev[section][nestedSection],
+          [key]: value,
+        },
+      },
+    }))
+  }
+
+  function handleSaveSettings() {
+    setSavedSettings(settings)
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+    setMessage('Settings saved.')
+    setError('')
+  }
+
+  function handleResetSettings() {
+    const resetSettings = {
+      ...DEFAULT_SETTINGS,
+      account: {
+        ...DEFAULT_SETTINGS.account,
+        name: currentUser?.name || '',
+        email: currentUser?.email || '',
+      },
+    }
+
+    setSettings(resetSettings)
+    setSavedSettings(resetSettings)
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(resetSettings))
+    setMessage('Settings reset to defaults.')
+    setError('')
+  }
+
+  function formatDateBySettings(value) {
+    if (!value) {
+      return 'N/A'
+    }
+
+    return new Date(value).toLocaleString([], {
+      hour12: savedSettings.general.timeFormat === '12h',
+    })
+  }
+
+  async function loadPlannerData() {
     setIsLoading(true)
     setError('')
 
     try {
       const [taskData, categoryData, userData] = await Promise.all([
-        fetchFilteredTasks(activeFilters),
+        fetchFilteredTasks(),
         fetchCategories(),
         fetchCurrentUser(),
       ])
@@ -148,8 +379,9 @@ function App() {
       setTasks(taskData)
       setCategories(finalCategories)
       setCurrentUser(userData)
+      setProfileImage(getProfileImageForEmail(userData?.email || ''))
     } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not load tasks. Please log in again.'))
+      setError(getApiErrorMessage(apiError, 'Could not load projects. Please log in again.'))
     } finally {
       setIsLoading(false)
     }
@@ -172,6 +404,17 @@ function App() {
 
       setStoredToken(response.token)
       setCurrentUser(response.user ?? null)
+
+      if (authMode === 'register' && registerImageFile && response?.user?.email) {
+        const imageDataUrl = await fileToDataUrl(registerImageFile)
+        saveProfileImageForEmail(response.user.email, imageDataUrl)
+        setProfileImage(imageDataUrl)
+      } else {
+        setProfileImage(getProfileImageForEmail(response?.user?.email || ''))
+      }
+
+      setRegisterImageFile(null)
+      setRegisterImagePreview('')
       setIsAuthenticated(true)
       setActivePage('dashboard')
       setAuthForm({ name: '', email: '', password: '' })
@@ -196,23 +439,37 @@ function App() {
     setTasks([])
     setCategories([])
     setCurrentUser(null)
+    setProfileImage('')
     setActivePage('dashboard')
     setMessage('Logged out.')
   }
 
-  async function handleApplyFilters(event) {
-    event.preventDefault()
-    setMessage('')
-    setError('')
-    await loadPlannerData(filters)
+  async function handleRegisterImageChange(event) {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      setRegisterImageFile(null)
+      setRegisterImagePreview('')
+      return
+    }
+
+    setRegisterImageFile(file)
+    const preview = await fileToDataUrl(file)
+    setRegisterImagePreview(preview)
   }
 
   function resetTaskForm() {
+    const defaultStatus = savedSettings.projects.customStatuses
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .find((value) => STATUS_OPTIONS.includes(value)) || 'todo'
+
     setTaskForm({
       title: '',
       description: '',
       category_id: '',
-      priority: 'medium',
+      priority: savedSettings.projects.defaultPriority,
+      status: defaultStatus,
       due_date: '',
       reminder_days: 0,
     })
@@ -225,27 +482,39 @@ function App() {
     setError('')
 
     try {
+      const selectedStatus = taskForm.status || 'todo'
+      let normalizedDueDate = taskForm.due_date ? new Date(taskForm.due_date).toISOString() : null
+
+      if (selectedStatus === 'todo') {
+        normalizedDueDate = null
+      }
+
+      if (selectedStatus === 'inprogress' && !normalizedDueDate) {
+        normalizedDueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }
+
       const payload = {
         title: taskForm.title,
         description: taskForm.description,
         category_id: taskForm.category_id || null,
         priority: taskForm.priority,
-        due_date: taskForm.due_date ? new Date(taskForm.due_date).toISOString() : null,
-        reminder_at: deriveReminderAt(taskForm.due_date, taskForm.reminder_days),
+        due_date: normalizedDueDate,
+        reminder_at: deriveReminderAt(normalizedDueDate, taskForm.reminder_days),
+        completed: selectedStatus === 'completed',
       }
 
       if (editingTaskId) {
         await updateTask(editingTaskId, payload)
-        setMessage('Task updated.')
+        setMessage('Project updated.')
       } else {
         await createTask(payload)
-        setMessage('Task created.')
+        setMessage('Project created.')
       }
 
       resetTaskForm()
       await loadPlannerData()
     } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not save task.'))
+      setError(getApiErrorMessage(apiError, 'Could not save project.'))
     }
   }
 
@@ -260,6 +529,7 @@ function App() {
       description: task.description || '',
       category_id: task.category_id ? String(task.category_id) : '',
       priority: task.priority || 'medium',
+      status: getTaskStatus(task),
       due_date: normalizeDateTimeForInput(task.due_date),
       reminder_days: reminderDays,
     })
@@ -281,9 +551,9 @@ function App() {
       })
 
       await loadPlannerData()
-      setMessage('Task updated.')
+      setMessage('Project updated.')
     } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not update task.'))
+      setError(getApiErrorMessage(apiError, 'Could not update project.'))
     }
   }
 
@@ -294,71 +564,9 @@ function App() {
     try {
       await deleteTask(task.id)
       await loadPlannerData()
-      setMessage('Task deleted.')
+      setMessage('Project deleted.')
     } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not delete task.'))
-    }
-  }
-
-  async function handleCategorySubmit(event) {
-    event.preventDefault()
-    setMessage('')
-    setError('')
-
-    try {
-      if (categoryForm.id) {
-        await updateCategory(categoryForm.id, {
-          name: categoryForm.name,
-          color: categoryForm.color,
-        })
-        setMessage('Category updated.')
-      } else {
-        await createCategory({
-          name: categoryForm.name,
-          color: categoryForm.color,
-        })
-        setMessage('Category created.')
-      }
-
-      setCategoryForm({ name: '', color: '#0b5fff', id: null })
-      await loadPlannerData()
-    } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not save category.'))
-    }
-  }
-
-  function startEditCategory(category) {
-    setCategoryForm({
-      id: category.id,
-      name: category.name,
-      color: category.color || '#0b5fff',
-    })
-  }
-
-  async function handleDeleteCategory(categoryId) {
-    setMessage('')
-    setError('')
-
-    try {
-      await deleteCategory(categoryId)
-      await loadPlannerData()
-      setMessage('Category deleted.')
-    } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not delete category.'))
-    }
-  }
-
-  async function handleSeedDefaultCategories() {
-    setMessage('')
-    setError('')
-
-    try {
-      const seeded = await seedDefaultCategories()
-      setCategories(seeded)
-      await loadPlannerData()
-      setMessage('Default project categories added.')
-    } catch (apiError) {
-      setError(getApiErrorMessage(apiError, 'Could not add default project categories.'))
+      setError(getApiErrorMessage(apiError, 'Could not delete project.'))
     }
   }
 
@@ -372,7 +580,7 @@ function App() {
   const todoTasks = useMemo(() => allTasks.filter((task) => !task.completed && !task.due_date), [allTasks])
 
   const priorityChartRows = useMemo(() => {
-    const rows = [
+    return [
       {
         label: 'High',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'high').length,
@@ -389,14 +597,56 @@ function App() {
         color: '#16a34a',
       },
     ]
-
-    const maxValue = Math.max(...rows.map((row) => row.value), 1)
-
-    return rows.map((row) => ({
-      ...row,
-      percent: Math.round((row.value / maxValue) * 100),
-    }))
   }, [allTasks])
+
+  const priorityBarData = useMemo(
+    () => ({
+      labels: priorityChartRows.map((row) => row.label),
+      datasets: [
+        {
+          label: 'Projects',
+          data: priorityChartRows.map((row) => row.value),
+          backgroundColor: priorityChartRows.map((row) => row.color),
+          borderRadius: 8,
+          maxBarThickness: 56,
+        },
+      ],
+    }),
+    [priorityChartRows],
+  )
+
+  const priorityBarOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              return `Projects: ${context.parsed.y}`
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#374151', font: { weight: 700 } },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            stepSize: 1,
+            color: '#4b5563',
+          },
+          grid: { color: 'rgba(100, 116, 139, 0.2)' },
+        },
+      },
+    }),
+    [],
+  )
 
   const taskDistribution = useMemo(() => {
     const total = Math.max(allTasks.length, 1)
@@ -414,10 +664,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Task Manager</p>
-          <h1>React + Laravel API</h1>
-        </div>
+        <h1 className="project-flow-title">Project Flow</h1>
       </header>
 
       {message ? <p className="notice ok">{message}</p> : null}
@@ -476,6 +723,16 @@ function App() {
               />
             </label>
 
+            {authMode === 'register' ? (
+              <label>
+                Upload Profile Image
+                <input type="file" accept="image/*" onChange={handleRegisterImageChange} />
+                {registerImagePreview ? (
+                  <img src={registerImagePreview} alt="Profile preview" className="register-image-preview" />
+                ) : null}
+              </label>
+            ) : null}
+
             <button type="submit" className="btn primary">
               {authMode === 'register' ? 'Create Account' : 'Login'}
             </button>
@@ -483,8 +740,22 @@ function App() {
         </section>
       ) : (
         <div className="dashboard-layout">
-          <aside className="sidebar panel">
-            <h2>Navigation</h2>
+          <aside className="sidebar">
+            <div className="sidebar-profile">
+              {profileImage ? (
+                <img src={profileImage} alt="Profile" className="sidebar-avatar" />
+              ) : (
+                <div className="sidebar-avatar-fallback">
+                  {(currentUser?.name || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              <div className="sidebar-profile-text">
+                <p className="sidebar-name">{currentUser?.name || 'User'}</p>
+                <p className="sidebar-email">{currentUser?.email || 'No email'}</p>
+              </div>
+            </div>
+
             <nav>
               <ul className="sidebar-nav">
                 {SIDEBAR_LINKS.map((item) => (
@@ -510,13 +781,13 @@ function App() {
 
           <div className="dashboard-content">
             {activePage === 'dashboard' ? (
-              <section className="panel">
+              <section className="page-section">
               <h2>Dashboard</h2>
               <p className="dashboard-greeting">Good Morning, {currentUser?.name || 'User'}</p>
 
               <div className="metrics-grid">
                 <div className="metric-card">
-                  <p>Total Tasks</p>
+                  <p>Total Projects</p>
                   <h3>{allTasks.length}</h3>
                 </div>
                 <div className="metric-card">
@@ -535,7 +806,7 @@ function App() {
 
               <div className="dashboard-charts two-col">
                 <div className="dashboard-chart panel-soft">
-                  <h3>Task Distribution</h3>
+                  <h3>Project Distribution</h3>
                   <div className="distribution-wrap">
                     <div
                       className="distribution-circle"
@@ -555,26 +826,18 @@ function App() {
 
                 <div className="dashboard-chart panel-soft">
                   <h3>Priority Bar Graph</h3>
-                  <ul className="chart-list">
-                    {priorityChartRows.map((row) => (
-                      <li key={row.label}>
-                        <span className="chart-label">{row.label}</span>
-                        <div className="chart-bar-track">
-                          <div className="chart-bar-fill" style={{ width: `${row.percent}%`, background: row.color }} />
-                        </div>
-                        <span className="chart-value">{row.value}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="bar-graph-wrap">
+                    <Bar data={priorityBarData} options={priorityBarOptions} />
+                  </div>
                 </div>
               </div>
 
               <div className="dashboard-table panel-soft">
-                <h3>Tasks Table</h3>
+                <h3>Projects Table</h3>
                 <table>
                   <thead>
                     <tr>
-                      <th>Task Title</th>
+                      <th>Project Name</th>
                       <th>Priority</th>
                       <th>Created At</th>
                     </tr>
@@ -584,12 +847,12 @@ function App() {
                       <tr key={task.id}>
                         <td>{task.title}</td>
                         <td><span className={`priority ${task.priority}`}>{task.priority || 'medium'}</span></td>
-                        <td>{formatDateTime(task.created_at)}</td>
+                        <td>{formatDateBySettings(task.created_at)}</td>
                       </tr>
                     ))}
                     {allTasks.length === 0 ? (
                       <tr>
-                        <td colSpan={3}>No tasks yet.</td>
+                        <td colSpan={3}>No projects yet.</td>
                       </tr>
                     ) : null}
                   </tbody>
@@ -599,11 +862,11 @@ function App() {
             ) : null}
 
             {activePage === 'manage-tasks' ? (
-              <section className="panel">
-                <h2>Manage Tasks</h2>
+              <section className="page-section">
+                <h2>Manage Projects</h2>
 
                 {isLoading ? <p>Loading...</p> : null}
-                {!isLoading && allTasks.length === 0 ? <p>No tasks yet.</p> : null}
+                {!isLoading && allTasks.length === 0 ? <p>No projects yet.</p> : null}
 
                 <div className="manage-grid">
                   {allTasks.map((task) => (
@@ -642,11 +905,11 @@ function App() {
             ) : null}
 
             {activePage === 'create-task' ? (
-              <section className="panel">
-              <h2>{editingTaskId ? 'Edit Task' : 'Create Task'}</h2>
+              <section className="page-section">
+              <h2>{editingTaskId ? 'Edit Project' : 'Add Project'}</h2>
               <form className="form-grid" onSubmit={handleCreateTask}>
                 <label>
-                  Title
+                  Project Name
                   <input
                     type="text"
                     value={taskForm.title}
@@ -690,6 +953,18 @@ function App() {
                 </label>
 
                 <label>
+                  Status
+                  <select
+                    value={taskForm.status}
+                    onChange={(event) => setTaskForm((prev) => ({ ...prev, status: event.target.value }))}
+                  >
+                    {STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
                   Due Date
                   <input
                     type="datetime-local"
@@ -712,7 +987,7 @@ function App() {
 
                 <div className="actions-row">
                   <button type="submit" className="btn primary">
-                    {editingTaskId ? 'Save Changes' : 'Add Task'}
+                    {editingTaskId ? 'Save Project' : 'Add Project'}
                   </button>
                   {editingTaskId ? (
                     <button type="button" className="btn ghost" onClick={resetTaskForm}>
@@ -725,64 +1000,9 @@ function App() {
             ) : null}
 
             {activePage === 'settings' ? (
-              <section className="panel">
-              <h2>Settings</h2>
-              <div className="actions-row">
-                <button type="button" className="btn ghost" onClick={handleSeedDefaultCategories}>
-                  Add Project Default Categories
-                </button>
-              </div>
-
-              <h3 style={{ marginTop: 16, marginBottom: 8 }}>Manage Categories</h3>
-              <form className="form-grid" onSubmit={handleCategorySubmit}>
-                <label>
-                  Category Name
-                  <input
-                    type="text"
-                    value={categoryForm.name}
-                    onChange={(event) => setCategoryForm((prev) => ({ ...prev, name: event.target.value }))}
-                    required
-                  />
-                </label>
-                <label>
-                  Color
-                  <input
-                    type="color"
-                    value={categoryForm.color}
-                    onChange={(event) => setCategoryForm((prev) => ({ ...prev, color: event.target.value }))}
-                  />
-                </label>
-                <div className="actions-row">
-                  <button type="submit" className="btn primary">
-                    {categoryForm.id ? 'Update Category' : 'Add Category'}
-                  </button>
-                  {categoryForm.id ? (
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={() => setCategoryForm({ name: '', color: '#0b5fff', id: null })}
-                    >
-                      Cancel Edit
-                    </button>
-                  ) : null}
-                </div>
-              </form>
-
-              <ul className="category-list" style={{ marginTop: 12 }}>
-                {categories.map((category) => (
-                  <li key={category.id}>
-                    <span className="category-dot" style={{ background: category.color }} />
-                    <span>{category.name}</span>
-                    <span className="category-count">{category.tasks_count ?? 0}</span>
-                    <button type="button" className="btn ghost" onClick={() => startEditCategory(category)}>
-                      Edit
-                    </button>
-                    <button type="button" className="btn danger" onClick={() => handleDeleteCategory(category.id)}>
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <section className="page-section">
+                <h2>Settings</h2>
+                <p>Settings content removed.</p>
               </section>
             ) : null}
           </div>

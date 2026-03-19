@@ -88,21 +88,6 @@ export async function seedDefaultCategories() {
   return data
 }
 
-export async function createCategory(payload) {
-  const { data } = await api.post('/categories', payload, { headers: authHeaders() })
-  return data
-}
-
-export async function updateCategory(categoryId, payload) {
-  const { data } = await api.put(`/categories/${categoryId}`, payload, { headers: authHeaders() })
-  return data
-}
-
-export async function deleteCategory(categoryId) {
-  const { data } = await api.delete(`/categories/${categoryId}`, { headers: authHeaders() })
-  return data
-}
-
 export async function fetchDashboardMetrics() {
   const { data } = await api.get('/dashboard/metrics', { headers: authHeaders() })
   return data
