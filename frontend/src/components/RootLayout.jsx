@@ -30,8 +30,17 @@ function RootLayout({ children }) {
 
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <h1 className="project-flow-title">Good morning, {(currentUser?.name || 'User').split(' ')[0].toLowerCase()}</h1>
+      <header className="main-topbar">
+        <div className="topbar-left">
+          <div className="topbar-welcome">
+            <span className="topbar-greeting">Welcome,</span>
+            <span className="topbar-username">{currentUser?.name || 'User'}</span>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="topbar-notif" aria-label="Notifications"><span className="notif-dot" /></div>
+          <div className="topbar-date">{new Date().toLocaleDateString()}</div>
+        </div>
       </header>
 
       <div className="dashboard-layout">

@@ -1,67 +1,38 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { fetchFilteredTasks, updateTask, deleteTask } from '../api'
+import { useTasks } from '../hooks/useTasks'
 import { formatDateTime, getTaskStatus } from '../utils/helpers'
 
 function TasksPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [tasks, setTasks] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { tasks, isLoading, error, loadTasks, editTask, removeTask, toggleTask } = useTasks()
   const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-
-  const loadTasks = async () => {
-    if (!isAuthenticated) return
-    setIsLoading(true)
-    setError('')
-    try {
-      const data = await fetchFilteredTasks()
-      setTasks(data)
-    } catch (err) {
-      setError('Failed to load tasks')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   useEffect(() => {
-    loadTasks()
+    if (isAuthenticated) {
+      loadTasks()
+    }
   }, [isAuthenticated])
 
   const handleToggleTask = async (task) => {
     setMessage('')
-    setError('')
     try {
-      await updateTask(task.id, {
-        title: task.title,
-        description: task.description,
-        category_id: task.category_id,
-        priority: task.priority,
-        due_date: task.due_date,
-        reminder_at: task.reminder_at,
-        completed: !task.completed,
-      })
-      await loadTasks()
+      await toggleTask(task)
       setMessage('Project updated.')
     } catch (err) {
-      setError('Could not update project.')
       console.error(err)
     }
   }
 
   const handleDeleteTask = async (task) => {
     setMessage('')
-    setError('')
     if (!window.confirm('Are you sure you want to delete this project?')) return
     try {
-      await deleteTask(task.id)
-      await loadTasks()
+      await removeTask(task.id)
       setMessage('Project deleted.')
     } catch (err) {
-      setError('Could not delete project.')
       console.error(err)
     }
   }
@@ -143,3 +114,4 @@ function TasksPage() {
 }
 
 export default TasksPage
+

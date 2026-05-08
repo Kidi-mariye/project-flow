@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { createTask, updateTask, fetchCategories } from '../api'
+import { useCategories } from '../hooks/useCategories'
+import { createTask, updateTask } from '../api'
 import { normalizeDateTimeForInput, deriveReminderAt, getApiErrorMessage } from '../utils/helpers'
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low']
@@ -16,7 +17,7 @@ const REMINDER_OPTIONS = [
 function CreateTaskPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const [categories, setCategories] = useState([])
+  const { categories, isLoading: categoriesLoading, loadCategories } = useCategories()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [editingTaskId, setEditingTaskId] = useState(null)
@@ -56,15 +57,6 @@ function CreateTaskPage() {
       sessionStorage.removeItem('editingTask')
     }
   }, [isAuthenticated])
-
-  const loadCategories = async () => {
-    try {
-      const data = await fetchCategories()
-      setCategories(data)
-    } catch (err) {
-      console.error('Failed to load categories:', err)
-    }
-  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
