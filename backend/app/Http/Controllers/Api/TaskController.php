@@ -18,6 +18,15 @@ class TaskController extends Controller
     {
         $query = auth()->user()->tasks()->with('category');
 
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->integer('category_id'));
         }
@@ -39,9 +48,11 @@ class TaskController extends Controller
         $query
             ->orderByRaw("CASE WHEN due_date IS NULL THEN 1 ELSE 0 END")
             ->orderBy('due_date')
-            ->latest();
+            ->orderByDesc('created_at');
 
-        return response()->json($query->get());
+        $perPage = max(1, min((int) $request->integer('per_page', 15), 100));
+
+        return response()->json($query->paginate($perPage)->withQueryString());
     }
 
     /**

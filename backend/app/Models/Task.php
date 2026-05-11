@@ -16,12 +16,14 @@ class Task extends Model
         'priority',
         'due_date',
         'reminder_at',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
         'completed' => 'boolean',
         'due_date' => 'datetime',
         'reminder_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

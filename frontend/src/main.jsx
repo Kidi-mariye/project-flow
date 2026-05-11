@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage'
 import TasksPage from './pages/TasksPage'
 import CreateTaskPage from './pages/CreateTaskPage'
 import SettingsPage from './pages/SettingsPage'
+import NotificationsPage from './pages/NotificationsPage'
 
 function AppRoutes() {
   return (
@@ -54,6 +55,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <RootLayout>
               <SettingsPage />
+            </RootLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <RootLayout>
+              <NotificationsPage />
             </RootLayout>
           </ProtectedRoute>
         }

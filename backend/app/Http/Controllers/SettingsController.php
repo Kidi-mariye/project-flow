@@ -44,9 +44,9 @@ class SettingsController extends Controller
             'advanced' => 'nullable|array',
         ]);
 
-        // Merge new settings with existing settings (deep merge)
+        // Merge new settings with existing settings using overwrite semantics
         $currentSettings = $user->settings ?? [];
-        $updatedSettings = array_merge_recursive($currentSettings, $validated);
+        $updatedSettings = array_replace_recursive($currentSettings, $validated);
 
         // Update user settings
         $user->settings = $updatedSettings;
