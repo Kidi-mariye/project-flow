@@ -111,7 +111,7 @@ export async function fetchFilteredTasks(filters = {}) {
   const { data } = await api.get('/tasks', {
     params: filters,
   })
-  return data
+  return data.data ?? data
 }
 
 export async function createTask(payload) {
@@ -157,5 +157,25 @@ export async function fetchUserSettings() {
 
 export async function updateUserSettings(settings) {
   const { data } = await api.put('/user/settings', settings)
+  return data
+}
+
+export async function fetchNotifications(params = {}) {
+  const { data } = await api.get('/notifications', { params })
+  return data
+}
+
+export async function markNotificationAsRead(notificationId) {
+  const { data } = await api.post(`/notifications/${notificationId}/read`)
+  return data
+}
+
+export async function markAllNotificationsAsRead() {
+  const { data } = await api.post('/notifications/read-all')
+  return data
+}
+
+export async function deleteNotification(notificationId) {
+  const { data } = await api.delete(`/notifications/${notificationId}`)
   return data
 }

@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await registerUser({ name, email, password })
+      const response = await registerUser({ name, email, password, password_confirmation: password })
       setStoredToken(response.token)
       setCurrentUser(response.user)
       setIsAuthenticated(true)

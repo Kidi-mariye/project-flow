@@ -9,12 +9,18 @@ function TasksPage() {
   const navigate = useNavigate()
   const { tasks, isLoading, error, loadTasks, editTask, removeTask, toggleTask } = useTasks()
   const [message, setMessage] = useState('')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadTasks()
+      loadTasks({ search: search.trim() || undefined })
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, loadTasks, search])
+
+  const handleSearchSubmit = async (event) => {
+    event.preventDefault()
+    await loadTasks({ search: search.trim() || undefined })
+  }
 
   const handleToggleTask = async (task) => {
     setMessage('')
@@ -46,6 +52,27 @@ function TasksPage() {
   return (
     <section className="page-section">
       <h2>Manage Projects</h2>
+
+      <form className="task-search-bar" onSubmit={handleSearchSubmit}>
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search projects by title or description"
+          aria-label="Search projects"
+        />
+        <button type="submit" className="btn ghost">Search</button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setSearch('')
+            loadTasks()
+          }}
+        >
+          Clear
+        </button>
+      </form>
 
       {message && <p className="notice ok">{message}</p>}
       {error && <p className="notice error">{error}</p>}

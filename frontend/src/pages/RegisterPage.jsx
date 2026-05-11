@@ -7,7 +7,7 @@ import '../App.css'
 function RegisterPage() {
   const { register, isLoading } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+    const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' })
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [error, setError] = useState('')
@@ -94,6 +94,17 @@ function RegisterPage() {
               type="password"
               name="password"
               value={form.password}
+              onChange={handleChange}
+              minLength={8}
+              required
+            />
+          </label>
+          <label>
+            Confirm Password
+            <input
+              type="password"
+              name="password_confirmation"
+              value={form.password_confirmation}
               onChange={handleChange}
               minLength={8}
               required

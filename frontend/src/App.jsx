@@ -399,7 +399,7 @@ function App() {
       }
 
       const response = authMode === 'register'
-        ? await registerUser({ ...payload, name: authForm.name })
+        ? await registerUser({ ...payload, name: authForm.name, password_confirmation: authForm.password })
         : await loginUser(payload)
 
       setStoredToken(response.token)
