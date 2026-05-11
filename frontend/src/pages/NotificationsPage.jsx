@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 import { getNotificationBadgeVariant, getNotificationTypeLabel } from '../utils/notifications'
 
 function NotificationsPage() {
   const {
     notifications,
+    meta,
     unreadCount,
     isLoading,
     error,
@@ -13,10 +14,25 @@ function NotificationsPage() {
     markAllAsRead,
     removeNotification,
   } = useNotifications()
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    loadNotifications({ page: currentPage })
+  }, [currentPage])
 
   useEffect(() => {
     loadNotifications()
-  }, [loadNotifications])
+  }, [])
+
+  const totalPages = meta?.last_page ?? 1
+  const fromItem = meta?.from ?? (notifications.length > 0 ? 1 : 0)
+  const toItem = meta?.to ?? notifications.length
+  const totalItems = meta?.total ?? notifications.length
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage) return
+    setCurrentPage(page)
+  }
 
   return (
     <section className="page-section">
@@ -64,7 +80,34 @@ function NotificationsPage() {
           </article>
         ))}
       </div>
-    </section>
+      {totalItems > 0 && totalPages > 1 && (
+        <div className="pagination-bar" style={{ marginTop: '24px' }}>
+          <div className="pagination-summary">
+            Showing {fromItem}-{toItem} of {totalItems} notifications
+          </div>
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              Previous
+            </button>
+            <span className="pagination-page-indicator">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}    </section>
   )
 }
 

@@ -7,25 +7,42 @@ import { formatDateTime, getTaskStatus } from '../utils/helpers'
 function TasksPage() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const { tasks, isLoading, error, loadTasks, editTask, removeTask, toggleTask } = useTasks()
+  const { tasks, meta, isLoading, error, loadTasks, removeTask, toggleTask } = useTasks()
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadTasks({ search: search.trim() || undefined })
-    }
-  }, [isAuthenticated, loadTasks, search])
+    if (!isAuthenticated) return
 
-  const handleSearchSubmit = async (event) => {
-    event.preventDefault()
-    await loadTasks({ search: search.trim() || undefined })
+    const timeoutId = window.setTimeout(() => {
+      loadTasks({
+        search: search.trim() || undefined,
+        page: currentPage,
+      })
+    }, search ? 300 : 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isAuthenticated, loadTasks, search, currentPage])
+
+  const totalPages = meta?.last_page ?? 1
+  const fromItem = meta?.from ?? (tasks.length > 0 ? 1 : 0)
+  const toItem = meta?.to ?? tasks.length
+  const totalItems = meta?.total ?? tasks.length
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage) return
+    setCurrentPage(page)
   }
 
   const handleToggleTask = async (task) => {
     setMessage('')
     try {
       await toggleTask(task)
+      await loadTasks({
+        search: search.trim() || undefined,
+        page: currentPage,
+      })
       setMessage('Project updated.')
     } catch (err) {
       console.error(err)
@@ -37,6 +54,10 @@ function TasksPage() {
     if (!window.confirm('Are you sure you want to delete this project?')) return
     try {
       await removeTask(task.id)
+      await loadTasks({
+        search: search.trim() || undefined,
+        page: currentPage,
+      })
       setMessage('Project deleted.')
     } catch (err) {
       console.error(err)
@@ -53,26 +74,28 @@ function TasksPage() {
     <section className="page-section">
       <h2>Manage Projects</h2>
 
-      <form className="task-search-bar" onSubmit={handleSearchSubmit}>
+      <div className="task-search-bar">
         <input
           type="search"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setCurrentPage(1)
+          }}
           placeholder="Search projects by title or description"
           aria-label="Search projects"
         />
-        <button type="submit" className="btn ghost">Search</button>
         <button
           type="button"
           className="btn"
           onClick={() => {
             setSearch('')
-            loadTasks()
+            setCurrentPage(1)
           }}
         >
           Clear
         </button>
-      </form>
+      </div>
 
       {message && <p className="notice ok">{message}</p>}
       {error && <p className="notice error">{error}</p>}
@@ -134,6 +157,35 @@ function TasksPage() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {totalItems > 0 && totalPages > 1 && (
+        <div className="pagination-bar" style={{ marginTop: '24px' }}>
+          <div className="pagination-summary">
+            Showing {fromItem}-{toItem} of {totalItems} projects
+          </div>
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              Previous
+            </button>
+            <span className="pagination-page-indicator">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </section>

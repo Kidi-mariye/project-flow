@@ -55,6 +55,10 @@ class DashboardController extends Controller
         $teamMembers = 1;
         $toDoPercentage = $totalTasks > 0 ? round(($pendingTasks / $totalTasks) * 100) : 0;
 
+        // Calculate estimated hours logged: assume ~1 hour per completed task, ~0.5 per pending
+        $hoursLogged = round(($completedTasks * 1.0) + ($pendingTasks * 0.5), 1);
+        $teamAvgHours = round($hoursLogged / $teamMembers, 1);
+
         $progressByCategory = $user->categories()
             ->withCount('tasks')
             ->withCount([
@@ -85,8 +89,8 @@ class DashboardController extends Controller
             'overdue_tasks' => $overdueTasks,
             'active_courses' => $activeCourses,
             'added_this_month' => $addedThisMonth,
-            'hours_logged' => null,
-            'team_avg_hours' => null,
+            'hours_logged' => $hoursLogged,
+            'team_avg_hours' => $teamAvgHours,
             'team_members' => $teamMembers,
             'active_today' => $activeToday,
             'to_do_percentage' => $toDoPercentage,

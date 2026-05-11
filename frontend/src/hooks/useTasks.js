@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { 
-  fetchFilteredTasks, 
+  fetchPagedTasks,
   createTask, 
   updateTask, 
   deleteTask 
@@ -12,9 +12,14 @@ import { useFetch } from './useFetch'
  * @returns {Object} - { tasks, isLoading, error, loadTasks, addTask, editTask, removeTask, toggleTask }
  */
 export function useTasks() {
-  const { data: tasks, isLoading, error, refetch, setData } = useFetch(fetchFilteredTasks, [])
+  const { data: taskState, isLoading, error, refetch, setData } = useFetch(fetchPagedTasks, {
+    items: [],
+    meta: null,
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const tasks = taskState?.items ?? []
+  const meta = taskState?.meta ?? null
 
   const loadTasks = useCallback(async (filters = {}) => {
     return refetch(filters)
@@ -25,7 +30,10 @@ export function useTasks() {
     setSubmitError(null)
     try {
       const newTask = await createTask(payload)
-      setData([...tasks, newTask])
+      setData((current) => ({
+        ...current,
+        items: [newTask, ...(current?.items ?? [])],
+      }))
       return newTask
     } catch (err) {
       setSubmitError(err.message || 'Failed to create task')
@@ -40,7 +48,10 @@ export function useTasks() {
     setSubmitError(null)
     try {
       const updated = await updateTask(taskId, payload)
-      setData(tasks.map(t => t.id === taskId ? updated : t))
+      setData((current) => ({
+        ...current,
+        items: (current?.items ?? []).map((task) => (task.id === taskId ? updated : task)),
+      }))
       return updated
     } catch (err) {
       setSubmitError(err.message || 'Failed to update task')
@@ -55,7 +66,10 @@ export function useTasks() {
     setSubmitError(null)
     try {
       await deleteTask(taskId)
-      setData(tasks.filter(t => t.id !== taskId))
+      setData((current) => ({
+        ...current,
+        items: (current?.items ?? []).filter((task) => task.id !== taskId),
+      }))
     } catch (err) {
       setSubmitError(err.message || 'Failed to delete task')
       throw err
@@ -73,6 +87,7 @@ export function useTasks() {
 
   return {
     tasks,
+    meta,
     isLoading,
     error,
     isSubmitting,

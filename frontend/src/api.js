@@ -114,6 +114,17 @@ export async function fetchFilteredTasks(filters = {}) {
   return data.data ?? data
 }
 
+export async function fetchPagedTasks(filters = {}) {
+  const { data } = await api.get('/tasks', {
+    params: filters,
+  })
+
+  return {
+    items: data.data ?? data,
+    meta: data.meta ?? null,
+  }
+}
+
 export async function createTask(payload) {
   const { data } = await api.post('/tasks', payload)
   return data
@@ -152,12 +163,12 @@ export async function fetchCurrentUser() {
 // Settings endpoints
 export async function fetchUserSettings() {
   const { data } = await api.get('/user/settings')
-  return data
+  return data.data ?? data
 }
 
 export async function updateUserSettings(settings) {
   const { data } = await api.put('/user/settings', settings)
-  return data
+  return data.data ?? data
 }
 
 export async function fetchNotifications(params = {}) {
