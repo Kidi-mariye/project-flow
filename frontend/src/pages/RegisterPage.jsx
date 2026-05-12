@@ -53,9 +53,9 @@ function RegisterPage() {
         <h1 className="project-flow-title">Task Manager</h1>
       </header>
 
-      <section className="panel" style={{ maxWidth: '400px', margin: '40px auto' }}>
+      <section className="panel auth-panel">
         <div className="tab-row">
-          <Link to="/login" className="tab" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+          <Link to="/login" className="tab link-no-underline">
             Login
           </Link>
           <button type="button" className="tab active">
@@ -136,8 +136,8 @@ function RegisterPage() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '20px' }}>
-          Already have an account? <Link to="/login" style={{ color: '#2563eb' }}>Login</Link>
+        <p className="center-mt20">
+          Already have an account? <Link to="/login" className="link-primary">Login</Link>
         </p>
       </section>
     </main>

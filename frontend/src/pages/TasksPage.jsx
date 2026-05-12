@@ -103,7 +103,7 @@ function TasksPage() {
       {isLoading ? (
         <p>Loading...</p>
       ) : tasks.length === 0 ? (
-        <p>No projects yet. <button onClick={() => navigate('/create-task')} style={{ cursor: 'pointer', color: 'var(--primary-500)' }}>Create one</button></p>
+        <p>No projects yet. <button onClick={() => navigate('/create-task')} className="link-button">Create one</button></p>
       ) : (
         <div className="manage-grid">
           {tasks.map((task) => (

@@ -208,7 +208,7 @@ function CreateTaskPage() {
           </select>
         </label>
 
-        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px' }}>
+        <div className="full-row-flex">
           <button type="submit" className="btn primary">
             {editingTaskId ? 'Update Project' : 'Create Project'}
           </button>

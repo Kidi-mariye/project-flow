@@ -81,7 +81,7 @@ function NotificationsPage() {
         ))}
       </div>
       {totalItems > 0 && totalPages > 1 && (
-        <div className="pagination-bar" style={{ marginTop: '24px' }}>
+        <div className="pagination-bar mt-24">
           <div className="pagination-summary">
             Showing {fromItem}-{toItem} of {totalItems} notifications
           </div>

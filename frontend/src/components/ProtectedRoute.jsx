@@ -5,7 +5,7 @@ function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
-    return <div style={{ padding: '20px' }}>Loading...</div>
+    return <div className="loading-placeholder">Loading...</div>
   }
 
   if (!isAuthenticated) {
