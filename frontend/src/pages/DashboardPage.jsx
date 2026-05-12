@@ -16,6 +16,7 @@ import { fetchDashboardMetrics } from '../api'
 import { formatDateTime } from '../utils/helpers'
 
 import './dashboard.css'
+import { tokenToHex, tokenToRGBA } from '../utils/colors'
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 ChartJS.register(ArcElement)
@@ -43,7 +44,11 @@ function DashboardPage() {
         {
           label: 'Projects',
           data: [counts.high || 0, counts.medium || 0, counts.low || 0],
-          backgroundColor: ['#dc2626', '#d97706', '#16a34a'],
+          backgroundColor: [
+            tokenToHex('--status-blocked') || 'rgb(220,38,38)',
+            tokenToHex('--status-at-risk') || 'rgb(245,158,11)',
+            tokenToHex('--status-done') || 'rgb(22,163,74)'
+          ],
           borderRadius: 8,
           maxBarThickness: 56,
         },
@@ -67,16 +72,16 @@ function DashboardPage() {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#374151', font: { weight: 700 } },
+        ticks: { color: 'var(--slate-700)', font: { weight: 700 } },
       },
       y: {
         beginAtZero: true,
-        ticks: {
+          ticks: {
           precision: 0,
           stepSize: 1,
-          color: '#4b5563',
+          color: 'var(--slate-500)',
         },
-        grid: { color: 'rgba(100, 116, 139, 0.2)' },
+        grid: { color: 'rgba(75,85,99,0.12)' },
       },
     },
   }), [])
@@ -91,7 +96,7 @@ function DashboardPage() {
           <>
             <div className="metrics">
               <div className="mc">
-                <div className="mc-icon" style={{ background: '#EEEDFE' }}>
+                <div className="mc-icon mc-icon--primary">
                   📁
                 </div>
                 <div className="mc-val">{metrics.total_tasks || 0}</div>
@@ -100,7 +105,7 @@ function DashboardPage() {
               </div>
 
               <div className="mc">
-                <div className="mc-icon" style={{ background: '#FCEBEB' }}>
+                <div className="mc-icon mc-icon--danger">
                   ⚠️
                 </div>
                 <div className="mc-val">{metrics.overdue_tasks || 0}</div>
@@ -109,7 +114,7 @@ function DashboardPage() {
               </div>
 
               <div className="mc">
-                <div className="mc-icon" style={{ background: '#E1F5EE' }}>
+                <div className="mc-icon mc-icon--ok">
                   ⏱️
                 </div>
                 <div className="mc-val">{metrics.hours_logged || '—'}</div>
@@ -118,7 +123,7 @@ function DashboardPage() {
               </div>
 
               <div className="mc">
-                <div className="mc-icon" style={{ background: '#FAEEDA' }}>
+                <div className="mc-icon mc-icon--warn">
                   👥
                 </div>
                 <div className="mc-val">{metrics.team_members || 0}</div>
@@ -139,19 +144,19 @@ function DashboardPage() {
                 <div className="card-hd"><span className="card-title">Overall progress</span></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ width: 80, height: 80 }}>
-                    <Doughnut data={{ datasets: [{ data: [metrics.completed_tasks || 0, metrics.pending_tasks || 0, metrics.overdue_tasks || 0], backgroundColor: ['#639922', '#378ADD', '#D3D1C7'] }] }} options={{ responsive: false, cutout: '72%', plugins: { legend: { display: false } } }} />
+                    <Doughnut data={{ datasets: [{ data: [metrics.completed_tasks || 0, metrics.pending_tasks || 0, metrics.overdue_tasks || 0], backgroundColor: [tokenToHex('--status-done') || '#16A34A', tokenToHex('--primary-500') || '#6366F1', tokenToHex('--slate-200') || '#E2E8F0'] }] }} options={{ responsive: false, cutout: '72%', plugins: { legend: { display: false } } }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: '#639922', display: 'inline-block' }} />Completed</span>
+                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--done" />Completed</span>
                       <span style={{ fontSize: 11, fontWeight: 500 }}>{Math.round(((metrics.completed_tasks || 0) / Math.max(1, (metrics.total_tasks || 1))) * 100)}%</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: '#378ADD', display: 'inline-block' }} />In progress</span>
+                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--progress" />In progress</span>
                       <span style={{ fontSize: 11, fontWeight: 500 }}>{metrics.pending_tasks || 0}%</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 4, background: '#D3D1C7', display: 'inline-block' }} />To do</span>
+                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--todo" />To do</span>
                       <span style={{ fontSize: 11, fontWeight: 500 }}>{metrics.to_do_percentage || 0}%</span>
                     </div>
                   </div>
@@ -163,10 +168,10 @@ function DashboardPage() {
               <div className="card">
                 <div className="card-hd"><span className="card-title">All projects</span><span className="card-link">View all →</span></div>
                 {tasks.slice(0,5).map((t, i) => (
-                  <div className="prow" key={t.id}>
-                    <div className="pdot" style={{ background: ['#378ADD','#7F77DD','#1D9E75','#E24B4A','#BA7517'][i%5] }}></div>
+                    <div className="prow" key={t.id}>
+                    <div className="pdot" style={{ background: ['var(--primary-500)','var(--status-review)','var(--status-done)','var(--status-blocked)','var(--status-at-risk)'][i%5] }}></div>
                     <div className="pname">{t.title}</div>
-                    <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, (t.progress_percent||0))}%`, background: ['#378ADD','#7F77DD','#1D9E75','#E24B4A','#BA7517'][i%5] }}></div></div>
+                    <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, (t.progress_percent||0))}%`, background: ['var(--primary-500)','var(--status-review)','var(--status-done)','var(--status-blocked)','var(--status-at-risk)'][i%5] }}></div></div>
                     <div className="ppct">{t.progress_percent || 0}%</div>
                     <span className={`pill ${t.status === 'ontrack' ? 'pill-g' : t.status === 'at-risk' ? 'pill-a' : 'pill-r'}`}>{t.status_label || 'On track'}</span>
                   </div>
@@ -187,7 +192,7 @@ function DashboardPage() {
               <div className="card">
                 <div className="card-hd"><span className="card-title">Team workload</span></div>
                 <div id="right-panel-content">
-                  <div className="wrow"><div className="wname">You</div><div className="wtrack"><div className="wfill" style={{ width: '60%', background:'#E6F1FB' }}><span className="wlabel" style={{ color:'#185FA5' }}>6 tasks</span></div></div></div>
+                  <div className="wrow"><div className="wname">You</div><div className="wtrack"><div className="wfill" style={{ width: '60%', background:'var(--primary-100)' }}><span className="wlabel" style={{ color:'var(--primary-600)' }}>6 tasks</span></div></div></div>
                 </div>
               </div>
             </div>

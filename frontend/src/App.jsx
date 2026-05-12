@@ -48,7 +48,7 @@ const DEFAULT_SETTINGS = {
   general: {
     languageRegion: 'English (US)',
     timeFormat: '24h',
-    theme: 'light',
+    theme: 'dark',
   },
   projects: {
     defaultPriority: 'medium',
@@ -584,17 +584,17 @@ function App() {
       {
         label: 'High',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'high').length,
-        color: '#dc2626',
+        color: 'var(--status-blocked)',
       },
       {
         label: 'Medium',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'medium').length,
-        color: '#d97706',
+        color: 'var(--status-at-risk)',
       },
       {
         label: 'Low',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'low').length,
-        color: '#16a34a',
+        color: 'var(--status-done)',
       },
     ]
   }, [allTasks])
@@ -632,16 +632,16 @@ function App() {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#374151', font: { weight: 700 } },
+          ticks: { color: 'var(--slate-500)', font: { weight: 700 } },
         },
         y: {
           beginAtZero: true,
           ticks: {
             precision: 0,
             stepSize: 1,
-            color: '#4b5563',
+            color: 'var(--slate-500)',
           },
-          grid: { color: 'rgba(100, 116, 139, 0.2)' },
+          grid: { color: 'rgba(75, 85, 99, 0.12)' },
         },
       },
     }),
@@ -810,7 +810,7 @@ function App() {
                     <div
                       className="distribution-circle"
                       style={{
-                        background: `conic-gradient(#16a34a 0 ${taskDistribution.completedPercent}%, #d97706 ${taskDistribution.completedPercent}% ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}%, #7c3aed ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}% 100%)`,
+                        background: `conic-gradient(var(--status-done) 0 ${taskDistribution.completedPercent}%, var(--status-at-risk) ${taskDistribution.completedPercent}% ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}%, var(--status-review) ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}% 100%)`,
                       }}
                     >
                       <span>{allTasks.length}</span>

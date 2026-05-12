@@ -5,6 +5,73 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f3f5f8;
-  color: #111827;
+  background: var(--bg-page);
+  color: var(--text-900);
 }
+
+:root {
+  /* Primary (Indigo) */
+  --primary-700: #4338CA;
+  --primary-600: #4F46E5;
+  --primary-500: #6366F1;
+  --primary-100: #EEF2FF;
+
+  /* Primary RGB tokens (for rgba uses) */
+  --primary-700-rgb: 67,56,202;
+  --primary-600-rgb: 79,70,229;
+  --primary-500-rgb: 99,102,241;
+  --primary-100-rgb: 238,242,255;
+
+  /* Status colors */
+  --status-done: #16A34A; /* green */
+  --status-at-risk: #F59E0B; /* amber */
+  --status-blocked: #DC2626; /* red */
+  --status-review: #7C3AED; /* violet */
+  --status-backlog: #64748B; /* slate */
+
+  /* Status RGB tokens */
+  --status-done-rgb: 22,163,74;
+  --status-at-risk-rgb: 245,158,11;
+  --status-blocked-rgb: 220,38,38;
+  --status-review-rgb: 124,58,237;
+  --status-backlog-rgb: 100,116,139;
+
+  /* Neutrals (slate scale) */
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-200-rgb: 226,232,240;
+  --slate-300: #CBD5E1;
+  --slate-500: #64748B;
+  --slate-700: #334155;
+  --slate-900: #0F172A;
+
+  --slate-900-rgb: 15,23,42;
+
+  /* Text and surfaces */
+  --text-900: var(--slate-900);
+  --text-700: var(--slate-700);
+  --text-500: var(--slate-500);
+  --bg-page: var(--slate-50);
+  --bg-surface: #FFFFFF;
+  --bg-soft: var(--slate-100);
+
+  /* Layout tokens */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --container-max: 1200px;
+  --gap-md: 16px;
+
+  /* Dark-theme tokens */
+  --bg-dark: #0b1220;
+  --bg-dark-surface: #111b2e;
+  --text-on-dark: #e2e8f0;
+  --border-dark: #263449;
+}
+
+/* Status utilities */
+.status-done { background: var(--status-done); color: #fff; }
+.status-at-risk { background: var(--status-at-risk); color: #111; }
+.status-blocked { background: var(--status-blocked); color: #fff; }
+.status-review { background: var(--status-review); color: #fff; }
+.status-backlog { background: var(--status-backlog); color: #fff; }
