@@ -32,12 +32,12 @@ function LoginPage() {
         <h1 className="project-flow-title">Task Manager</h1>
       </header>
 
-      <section className="panel" style={{ maxWidth: '400px', margin: '40px auto' }}>
+      <section className="panel auth-panel">
         <div className="tab-row">
           <button type="button" className="tab active">
             Login
           </button>
-          <Link to="/register" className="tab" style={{ textDecoration: 'none', cursor: 'pointer' }}>
+          <Link to="/register" className="tab link-no-underline">
             Register
           </Link>
         </div>
@@ -77,8 +77,8 @@ function LoginPage() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '20px' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#2563eb' }}>Register</Link>
+        <p className="center-mt20">
+          Don't have an account? <Link to="/register" className="link-primary">Register</Link>
         </p>
       </section>
     </main>

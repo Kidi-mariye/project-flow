@@ -2,10 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\TaskReminderMail;
 use App\Models\Task;
 use App\Notifications\TaskReminderNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class SendTaskReminders extends Command
 {
@@ -14,14 +16,14 @@ class SendTaskReminders extends Command
      *
      * @var string
      */
-    protected $signature = 'tasks:send-reminders';
+    protected $signature = 'tasks:send-reminders {--channel=all : Send reminders via specific channel (all, email, database)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Send due task reminders to users';
+    protected $description = 'Send due task reminders to users via email and/or database notifications';
 
     /**
      * Execute the console command.
@@ -29,6 +31,7 @@ class SendTaskReminders extends Command
     public function handle(): int
     {
         $now = Carbon::now();
+        $channel = $this->option('channel');
 
         $tasks = Task::query()
             ->with('user')
@@ -38,19 +41,35 @@ class SendTaskReminders extends Command
             ->where('reminder_at', '<=', $now)
             ->get();
 
-        $sent = 0;
+        $sentEmail = 0;
+        $sentDatabase = 0;
 
         foreach ($tasks as $task) {
             if (! $task->user) {
                 continue;
             }
 
-            $task->user->notify(new TaskReminderNotification($task));
+            // Send database notification
+            if (in_array($channel, ['all', 'database'])) {
+                $task->user->notify(new TaskReminderNotification($task));
+                $sentDatabase++;
+            }
+
+            // Send email notification
+            if (in_array($channel, ['all', 'email'])) {
+                try {
+                    Mail::to($task->user->email)->send(new TaskReminderMail($task));
+                    $sentEmail++;
+                } catch (\Exception $e) {
+                    $this->warn("Failed to send email for task {$task->id}: {$e->getMessage()}");
+                }
+            }
+
+            // Mark as sent only after all channels are attempted
             $task->forceFill(['reminder_sent_at' => $now])->save();
-            $sent++;
         }
 
-        $this->info("Sent {$sent} reminder notification(s).");
+        $this->info("Sent {$sentDatabase} database reminder(s), {$sentEmail} email(s).");
 
         return self::SUCCESS;
     }

@@ -50,31 +50,18 @@ function SettingsPage() {
       <h2>Settings</h2>
 
       {/* Account Information Panel */}
-      <div className="panel-soft" style={{ marginTop: '20px', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
+      <div className="panel-soft settings-panel-large">
         <h3>Account Information</h3>
         
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div className="settings-account-row">
           {profileImage ? (
             <img 
               src={profileImage} 
               alt={currentUser?.name}
-              style={{ width: '80px', height: '80px', borderRadius: '50%' }}
+              className="avatar-circle"
             />
           ) : (
-            <div
-              style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                backgroundColor: '#2563eb',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '32px',
-                fontWeight: 'bold',
-              }}
-            >
+            <div className="avatar-circle avatar-placeholder">
               {firstLetter}
             </div>
           )}
@@ -88,13 +75,12 @@ function SettingsPage() {
           </div>
         </div>
 
-        <hr style={{ margin: '20px 0', borderColor: '#e2e8f0' }} />
+        <hr className="hr-muted" />
 
         <div style={{ marginTop: '30px' }}>
           <button 
             onClick={handleLogout}
-            className="btn danger"
-            style={{ padding: '10px 20px' }}
+            className="btn danger btn-logout"
           >
             Logout
           </button>
@@ -102,26 +88,16 @@ function SettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <div className="panel-soft" style={{ padding: '20px', borderRadius: '8px' }}>
+      <div className="panel-soft settings-panel">
         <h3>Preferences</h3>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', paddingBottom: '10px' }}>
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={activeTab === tab.id ? 'tab-row active' : 'tab-row'}
-              style={{
-                padding: '8px 16px',
-                border: 'none',
-                backgroundColor: activeTab === tab.id ? '#f0f9ff' : 'transparent',
-                color: activeTab === tab.id ? '#0284c7' : '#475569',
-                borderBottom: activeTab === tab.id ? '2px solid #0284c7' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                fontSize: '14px',
-              }}
+              className={activeTab === tab.id ? 'tab-btn active' : 'tab-btn'}
             >
               {tab.label}
             </button>
@@ -129,16 +105,16 @@ function SettingsPage() {
         </div>
 
         {/* Error Messages */}
-        {error && (
-          <div className="notice" style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '4px', marginBottom: '20px' }}>
-            Error loading settings: {error}
-          </div>
-        )}
-        {saveError && (
-          <div className="notice" style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '4px', marginBottom: '20px' }}>
-            Error saving settings: {saveError}
-          </div>
-        )}
+          {error && (
+            <div className="notice error notice-inline-error">
+              Error loading settings: {error}
+            </div>
+          )}
+          {saveError && (
+            <div className="notice error notice-inline-error">
+              Error saving settings: {saveError}
+            </div>
+          )}
 
         {/* Tab Content */}
         <div style={{ marginTop: '20px' }}>
@@ -149,7 +125,7 @@ function SettingsPage() {
                 <select 
                   value={settings.general.languageRegion || 'English (US)'}
                   onChange={(e) => handleSettingChange('general', 'languageRegion', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option>English (US)</option>
                   <option>English (UK)</option>
@@ -164,7 +140,7 @@ function SettingsPage() {
                 <select 
                   value={settings.general.timeFormat || '24h'}
                   onChange={(e) => handleSettingChange('general', 'timeFormat', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option value="24h">24-hour</option>
                   <option value="12h">12-hour</option>
@@ -176,7 +152,7 @@ function SettingsPage() {
                 <select 
                   value={settings.general.theme || 'light'}
                   onChange={(e) => handleSettingChange('general', 'theme', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
@@ -193,7 +169,7 @@ function SettingsPage() {
                 <select 
                   value={settings.projects.defaultPriority || 'medium'}
                   onChange={(e) => handleSettingChange('projects', 'defaultPriority', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -206,7 +182,7 @@ function SettingsPage() {
                 <select 
                   value={settings.projects.defaultDueDate || 'none'}
                   onChange={(e) => handleSettingChange('projects', 'defaultDueDate', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option value="none">None</option>
                   <option value="today">Today</option>
@@ -235,7 +211,7 @@ function SettingsPage() {
                   type="number" 
                   value={settings.notifications.reminderTiming || '10'}
                   onChange={(e) => handleSettingChange('notifications', 'reminderTiming', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 />
               </div>
             </div>
@@ -248,7 +224,7 @@ function SettingsPage() {
                 <select 
                   value={settings.collaboration.projectVisibility || 'private'}
                   onChange={(e) => handleSettingChange('collaboration', 'projectVisibility', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid var(--slate-300)' }}
                 >
                   <option value="private">Private</option>
                   <option value="shared">Shared with Team</option>
@@ -270,7 +246,7 @@ function SettingsPage() {
 
           {activeTab === 'account' && settings?.account && (
             <div>
-              <p style={{ color: '#475569', marginBottom: '20px' }}>
+              <p style={{ color: 'var(--slate-700)', marginBottom: '20px' }}>
                 Account settings are managed from your profile. To change your name or email, please update your profile.
               </p>
               <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -281,7 +257,7 @@ function SettingsPage() {
                   id="account-2fa"
                   disabled
                 />
-                <label htmlFor="account-2fa" style={{ marginBottom: 0, color: '#94a3b8' }}>Two-Factor Authentication (Coming Soon)</label>
+                <label htmlFor="account-2fa" style={{ marginBottom: 0, color: 'var(--text-500)' }}>Two-Factor Authentication (Coming Soon)</label>
               </div>
             </div>
           )}
@@ -293,7 +269,7 @@ function SettingsPage() {
                 <select 
                   value={settings.dataSecurity.encryptionLevel || 'standard'}
                   onChange={(e) => handleSettingChange('dataSecurity', 'encryptionLevel', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 >
                   <option value="standard">Standard</option>
                   <option value="enhanced">Enhanced</option>
@@ -306,7 +282,7 @@ function SettingsPage() {
                   type="number" 
                   value={settings.dataSecurity.retentionDays || '0'}
                   onChange={(e) => handleSettingChange('dataSecurity', 'retentionDays', e.target.value)}
-                  style={{ width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  className="form-input"
                 />
               </div>
             </div>
@@ -338,7 +314,7 @@ function SettingsPage() {
         </div>
 
         {isSaving && (
-          <div style={{ marginTop: '20px', color: '#0284c7' }}>
+          <div style={{ marginTop: '20px', color: 'var(--primary-500)' }}>
             Saving changes...
           </div>
         )}
