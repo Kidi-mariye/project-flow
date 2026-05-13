@@ -66,6 +66,8 @@ html {
   --radius-md: 8px;
   --container-max: 1200px;
   --gap-md: 16px;
+  --container-pad: 24px;
+  --topbar-height: 72px;
 
   /* Dark-theme tokens */
   --bg-dark: #0b1220;
