@@ -56,6 +56,17 @@
   z-index: 30;
 }
 
+/* Inner container to align header content with centered app shell */
+.main-topbar-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .topbar-left {
   flex: 1;
   display: flex;

@@ -9,6 +9,11 @@ body {
   color: var(--text-900);
 }
 
+/* Increase base font size for better readability across the app */
+html {
+  font-size: 18px;
+}
+
 :root {
   /* Primary (Indigo) */
   --primary-700: #4338CA;
