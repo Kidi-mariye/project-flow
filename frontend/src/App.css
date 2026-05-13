@@ -28,7 +28,7 @@
   max-width: var(--container-max);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 var(--container-pad);
   background: var(--bg-page);
   color: var(--text-main);
   font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -42,10 +42,10 @@
   justify-content: space-between;
   gap: 20px;
   padding: 16px 24px;
-  /* Full-bleed across the viewport from inside a centered container */
-  position: relative;
+  /* Fixed full-bleed header */
+  position: fixed;
+  top: 0;
   left: 50%;
-  right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
   width: 100vw;
@@ -53,7 +53,42 @@
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   color: var(--text-main);
-  z-index: 30;
+  z-index: 1000;
+  height: var(--topbar-height);
+}
+
+/* Inner container to align header content with centered app shell */
+.main-topbar-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--container-pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Ensure header content is pinned left/right: welcome on the left, controls on the right */
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* occupy available left space so content sits flush to left */
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+}
+
+/* push main shell content below the fixed header */
+.app-shell {
+  padding-top: var(--topbar-height);
 }
 
 .topbar-left {
@@ -482,20 +517,20 @@ h2 {
 }
 
 .dashboard-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 0;
-  align-items: stretch;
-  flex: 1;
-  padding: 20px 24px;
+  display: block;
+  min-height: calc(100vh - var(--topbar-height));
+  padding: 20px var(--container-pad);
 }
 
 .dashboard-content {
   min-width: 0;
   width: 100%;
-  padding-left: 14px;
-  border-left: 1px solid var(--border);
+  margin-left: 280px;
+  padding-left: 24px;
 }
+
+/* Hide legacy page-level topbar instances that conflict with main header */
+.topbar { display: none !important; }
 
 .page-header-row {
   display: flex;
@@ -568,11 +603,18 @@ h2 {
 }
 
 .sidebar {
-  position: sticky;
-  top: 16px;
+  position: fixed;
+  left: 0;
+  top: calc(var(--topbar-height));
+  width: 280px;
+  height: calc(100vh - var(--topbar-height));
   display: flex;
   flex-direction: column;
-  padding-right: 16px;
+  padding: 20px 16px;
+  box-sizing: border-box;
+  background: transparent;
+  z-index: 20;
+  border-right: 1px solid var(--border);
 }
 
 .sidebar nav {

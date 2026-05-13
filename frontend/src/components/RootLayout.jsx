@@ -74,13 +74,14 @@ function RootLayout({ children }) {
   return (
     <main className="app-shell">
       <header className="main-topbar">
-        <div className="topbar-left">
-          <div className="topbar-welcome">
-            <span className="topbar-greeting">Welcome,</span>
-            <span className="topbar-username">{currentUser?.name || 'User'}</span>
+        <div className="main-topbar-inner">
+          <div className="topbar-left">
+            <div className="topbar-welcome">
+              <span className="topbar-greeting">Welcome,</span>
+              <span className="topbar-username">{currentUser?.name || 'User'}</span>
+            </div>
           </div>
-        </div>
-        <div className="topbar-right">
+          <div className="topbar-right">
           <div className="topbar-notif-wrap" ref={dropdownRef}>
             <div
               className="topbar-notif"
@@ -154,6 +155,7 @@ function RootLayout({ children }) {
             )}
           </div>
           <div className="topbar-date">{new Date().toLocaleDateString()}</div>
+          </div>
         </div>
       </header>
 
