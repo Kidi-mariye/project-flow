@@ -1,0 +1,17 @@
+.task-search-bar {
+  position: relative;
+}
+
+.task-filters {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
