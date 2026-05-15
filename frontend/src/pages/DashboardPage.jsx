@@ -142,22 +142,78 @@ function DashboardPage() {
 
               <div className="card">
                 <div className="card-hd"><span className="card-title">Overall progress</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 80, height: 80 }}>
-                    <Doughnut data={{ datasets: [{ data: [metrics.completed_tasks || 0, metrics.pending_tasks || 0, metrics.overdue_tasks || 0], backgroundColor: [tokenToHex('--status-done') || '#16A34A', tokenToHex('--primary-500') || '#6366F1', tokenToHex('--slate-200') || '#E2E8F0'] }] }} options={{ responsive: false, cutout: '72%', plugins: { legend: { display: false } } }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                  <div style={{ position: 'relative', width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+                    <Doughnut 
+                      data={{ 
+                        labels: ['Completed', 'In progress', 'To do'],
+                        datasets: [{ 
+                          data: [metrics.completed_tasks || 0, metrics.pending_tasks || 0, metrics.overdue_tasks || 0], 
+                          backgroundColor: [
+                            tokenToHex('--status-done') || '#16A34A', 
+                            tokenToHex('--primary-500') || '#6366F1', 
+                            tokenToHex('--slate-200') || '#E2E8F0'
+                          ],
+                          borderColor: [
+                            'rgba(22,163,74,0.3)',
+                            'rgba(99,102,241,0.3)',
+                            'rgba(226,232,240,0.5)'
+                          ],
+                          borderWidth: 2,
+                          hoverBorderWidth: 3,
+                          hoverOffset: 8
+                        }] 
+                      }} 
+                      options={{ 
+                        responsive: false, 
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        layout: { padding: 0 },
+                        plugins: { 
+                          legend: { display: false },
+                          tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(15,23,42,0.9)',
+                            titleFont: { size: 12, weight: 'bold' },
+                            bodyFont: { size: 11 },
+                            padding: 8,
+                            displayColors: true,
+                            callbacks: {
+                              label(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0)
+                                const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0
+                                return `${context.label}: ${context.parsed} (${percentage}%)`
+                              }
+                            }
+                          }
+                        },
+                        animation: {
+                          animateRotate: true,
+                          animateScale: false,
+                          duration: 750,
+                          easing: 'easeInOutQuart'
+                        }
+                      }} 
+                    />
+                    <div style={{ position: 'absolute', textAlign: 'center', pointerEvents: 'none' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-900)' }}>
+                        {Math.round(((metrics.completed_tasks || 0) / Math.max(1, (metrics.total_tasks || 1))) * 100)}%
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-500)', marginTop: '2px' }}>Complete</div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--done" />Completed</span>
-                      <span style={{ fontSize: 11, fontWeight: 500 }}>{Math.round(((metrics.completed_tasks || 0) / Math.max(1, (metrics.total_tasks || 1))) * 100)}%</span>
+                      <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--done" />Completed</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--status-done)' }}>{metrics.completed_tasks || 0}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--progress" />In progress</span>
-                      <span style={{ fontSize: 11, fontWeight: 500 }}>{metrics.pending_tasks || 0}%</span>
+                      <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--progress" />In progress</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--primary-500)' }}>{metrics.pending_tasks || 0}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}><span className="legend-square legend-square--todo" />To do</span>
-                      <span style={{ fontSize: 11, fontWeight: 500 }}>{metrics.to_do_percentage || 0}%</span>
+                      <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--todo" />To do</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--slate-500)' }}>{metrics.overdue_tasks || 0}</span>
                     </div>
                   </div>
                 </div>
