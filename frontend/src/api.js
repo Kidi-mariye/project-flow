@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
+// Use VITE_API_BASE_URL when provided; otherwise use relative `/api` so the
+// Vite dev server proxy can forward requests to the backend.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 const TOKEN_KEY = 'task_manager_token'
 
 const api = axios.create({
