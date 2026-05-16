@@ -79,7 +79,6 @@ function RootLayout({ children }) {
             <div className="topbar-welcome">
               <span className="topbar-greeting">Welcome,</span>
               <span className="topbar-username">{currentUser?.name || 'User'}</span>
-              <span className="topbar-date">{new Date().toLocaleDateString()}</span>
             </div>
           </div>
           <div className="topbar-right">
@@ -155,6 +154,7 @@ function RootLayout({ children }) {
               </div>
             )}
           </div>
+            <span className="topbar-date topbar-date-right">{new Date().toLocaleDateString()}</span>
           </div>
         </div>
       </header>
