@@ -20,6 +20,54 @@ import { tokenToHex, tokenToRGBA } from '../utils/colors'
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 ChartJS.register(ArcElement)
+
+function MetricGlyph({ variant }) {
+  const sharedProps = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  }
+
+  switch (variant) {
+    case 'projects':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </svg>
+      )
+    case 'overdue':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 8v4l2.5 1.5" />
+        </svg>
+      )
+    case 'hours':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7.5v4.5l3 2" />
+        </svg>
+      )
+    case 'team':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <path d="M16 19a4 4 0 0 0-8 0" />
+          <circle cx="12" cy="9" r="3" />
+          <circle cx="18" cy="11" r="2" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 function DashboardPage() {
   const { currentUser, isAuthenticated } = useAuth()
   const { tasks, isLoading: tasksLoading, error: tasksError, loadTasks } = useTasks()
@@ -45,9 +93,9 @@ function DashboardPage() {
           label: 'Projects',
           data: [counts.high || 0, counts.medium || 0, counts.low || 0],
           backgroundColor: [
-            tokenToHex('--status-blocked') || 'rgb(220,38,38)',
-            tokenToHex('--status-at-risk') || 'rgb(245,158,11)',
-            tokenToHex('--status-done') || 'rgb(22,163,74)'
+            tokenToHex('--primary-600') || 'rgb(79,70,229)',
+            tokenToHex('--indigo-400') || 'rgb(129,140,248)',
+            tokenToHex('--indigo-200') || 'rgb(199,210,254)'
           ],
           borderRadius: 8,
           maxBarThickness: 56,
@@ -97,7 +145,7 @@ function DashboardPage() {
             <div className="metrics">
               <div className="mc">
                 <div className="mc-icon mc-icon--primary">
-                  📁
+                  <MetricGlyph variant="projects" />
                 </div>
                 <div className="mc-val">{metrics.total_tasks || 0}</div>
                 <div className="mc-label">Active projects</div>
@@ -106,7 +154,7 @@ function DashboardPage() {
 
               <div className="mc">
                 <div className="mc-icon mc-icon--danger">
-                  ⚠️
+                  <MetricGlyph variant="overdue" />
                 </div>
                 <div className="mc-val">{metrics.overdue_tasks || 0}</div>
                 <div className="mc-label">Overdue tasks</div>
@@ -115,7 +163,7 @@ function DashboardPage() {
 
               <div className="mc">
                 <div className="mc-icon mc-icon--ok">
-                  ⏱️
+                  <MetricGlyph variant="hours" />
                 </div>
                 <div className="mc-val">{metrics.hours_logged || '—'}</div>
                 <div className="mc-label">Hours logged (week)</div>
@@ -124,7 +172,7 @@ function DashboardPage() {
 
               <div className="mc">
                 <div className="mc-icon mc-icon--warn">
-                  👥
+                  <MetricGlyph variant="team" />
                 </div>
                 <div className="mc-val">{metrics.team_members || 0}</div>
                 <div className="mc-label">Team members</div>
@@ -150,14 +198,14 @@ function DashboardPage() {
                         datasets: [{ 
                           data: [metrics.completed_tasks || 0, metrics.pending_tasks || 0, metrics.overdue_tasks || 0], 
                           backgroundColor: [
-                            tokenToHex('--status-done') || '#16A34A', 
-                            tokenToHex('--primary-500') || '#6366F1', 
-                            tokenToHex('--slate-200') || '#E2E8F0'
+                            tokenToHex('--primary-600') || '#4F46E5', 
+                            tokenToHex('--indigo-400') || '#818CF8', 
+                            tokenToHex('--indigo-200') || '#C7D2FE'
                           ],
                           borderColor: [
-                            'rgba(22,163,74,0.3)',
-                            'rgba(99,102,241,0.3)',
-                            'rgba(226,232,240,0.5)'
+                            'rgba(79,70,229,0.3)',
+                            'rgba(129,140,248,0.3)',
+                            'rgba(199,210,254,0.5)'
                           ],
                           borderWidth: 2,
                           hoverBorderWidth: 3,
@@ -205,15 +253,15 @@ function DashboardPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--done" />Completed</span>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--status-done)' }}>{metrics.completed_tasks || 0}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--primary-600)' }}>{metrics.completed_tasks || 0}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--progress" />In progress</span>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--primary-500)' }}>{metrics.pending_tasks || 0}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--indigo-400)' }}>{metrics.pending_tasks || 0}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }}><span className="legend-square legend-square--todo" />To do</span>
-                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--slate-500)' }}>{metrics.overdue_tasks || 0}</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--indigo-200)' }}>{metrics.overdue_tasks || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -225,9 +273,9 @@ function DashboardPage() {
                 <div className="card-hd"><span className="card-title">All projects</span><span className="card-link">View all →</span></div>
                 {tasks.slice(0,5).map((t, i) => (
                     <div className="prow" key={t.id}>
-                    <div className="pdot" style={{ background: ['var(--primary-500)','var(--status-review)','var(--status-done)','var(--status-blocked)','var(--status-at-risk)'][i%5] }}></div>
+                  <div className="pdot" style={{ background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div>
                     <div className="pname">{t.title}</div>
-                    <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, (t.progress_percent||0))}%`, background: ['var(--primary-500)','var(--status-review)','var(--status-done)','var(--status-blocked)','var(--status-at-risk)'][i%5] }}></div></div>
+                  <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, (t.progress_percent||0))}%`, background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div></div>
                     <div className="ppct">{t.progress_percent || 0}%</div>
                     <span className={`pill ${t.status === 'ontrack' ? 'pill-g' : t.status === 'at-risk' ? 'pill-a' : 'pill-r'}`}>{t.status_label || 'On track'}</span>
                   </div>

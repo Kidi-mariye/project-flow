@@ -1,21 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth'
 import { useSettings } from '../hooks/useSettings'
 
 function SettingsPage() {
-  const { currentUser, logout } = useAuth()
   const { settings, isLoading, error, isSaving, saveError, loadSettings, updateSetting } = useSettings()
   const [activeTab, setActiveTab] = useState('general')
-  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     loadSettings()
   }, [])
-
-  const handleLogout = async () => {
-    await logout()
-    window.location.href = '/login'
-  }
 
   const handleSettingChange = async (section, key, value) => {
     try {
@@ -25,11 +17,6 @@ function SettingsPage() {
       console.error('Failed to update setting:', err)
     }
   }
-
-  const profileImage = currentUser?.email 
-    ? localStorage.getItem(`profile_image_${currentUser.email}`) 
-    : ''
-  const firstLetter = (currentUser?.name || 'U').charAt(0).toUpperCase()
 
   const tabs = [
     { id: 'general', label: 'General' },
@@ -48,44 +35,6 @@ function SettingsPage() {
   return (
     <section className="page-section">
       <h2>Settings</h2>
-
-      {/* Account Information Panel */}
-      <div className="panel-soft settings-panel-large">
-        <h3>Account Information</h3>
-        
-        <div className="settings-account-row">
-          {profileImage ? (
-            <img 
-              src={profileImage} 
-              alt={currentUser?.name}
-              className="avatar-circle"
-            />
-          ) : (
-            <div className="avatar-circle avatar-placeholder">
-              {firstLetter}
-            </div>
-          )}
-          
-          <div>
-            <p><strong>Name:</strong> {currentUser?.name || 'N/A'}</p>
-            <p><strong>Email:</strong> {currentUser?.email || 'N/A'}</p>
-            <p><strong>Member since:</strong> {currentUser?.created_at 
-              ? new Date(currentUser.created_at).toLocaleDateString() 
-              : 'N/A'}</p>
-          </div>
-        </div>
-
-        <hr className="hr-muted" />
-
-        <div style={{ marginTop: '30px' }}>
-          <button 
-            onClick={handleLogout}
-            className="btn danger btn-logout"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
 
       {/* Settings Tabs */}
       <div className="panel-soft settings-panel">
@@ -195,14 +144,17 @@ function SettingsPage() {
 
           {activeTab === 'notifications' && settings?.notifications && (
             <div>
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+              <div className="settings-toggle-row">
+                <input
+                  type="checkbox"
                   checked={settings.notifications.enabled || false}
                   onChange={(e) => handleSettingChange('notifications', 'enabled', e.target.checked)}
                   id="notif-enabled"
+                  className="settings-toggle-input"
                 />
-                <label htmlFor="notif-enabled" style={{ marginBottom: 0 }}>Enable Notifications</label>
+                <label htmlFor="notif-enabled" className="settings-toggle-label">
+                  Enable Notifications
+                </label>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
@@ -232,14 +184,17 @@ function SettingsPage() {
                 </select>
               </div>
 
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+              <div className="settings-toggle-row">
+                <input
+                  type="checkbox"
                   checked={settings.collaboration.allowComments || false}
                   onChange={(e) => handleSettingChange('collaboration', 'allowComments', e.target.checked)}
                   id="collab-comments"
+                  className="settings-toggle-input"
                 />
-                <label htmlFor="collab-comments" style={{ marginBottom: 0 }}>Allow Comments</label>
+                <label htmlFor="collab-comments" className="settings-toggle-label">
+                  Allow Comments
+                </label>
               </div>
             </div>
           )}
@@ -249,15 +204,18 @@ function SettingsPage() {
               <p style={{ color: 'var(--slate-700)', marginBottom: '20px' }}>
                 Account settings are managed from your profile. To change your name or email, please update your profile.
               </p>
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+              <div className="settings-toggle-row settings-toggle-row--disabled">
+                <input
+                  type="checkbox"
                   checked={settings.account.twoFactorEnabled || false}
                   onChange={(e) => handleSettingChange('account', 'twoFactorEnabled', e.target.checked)}
                   id="account-2fa"
+                  className="settings-toggle-input"
                   disabled
                 />
-                <label htmlFor="account-2fa" style={{ marginBottom: 0, color: 'var(--text-500)' }}>Two-Factor Authentication (Coming Soon)</label>
+                <label htmlFor="account-2fa" className="settings-toggle-label settings-toggle-label--disabled">
+                  Two-Factor Authentication (Coming Soon)
+                </label>
               </div>
             </div>
           )}
@@ -290,24 +248,30 @@ function SettingsPage() {
 
           {activeTab === 'advanced' && settings?.advanced && (
             <div>
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+              <div className="settings-toggle-row">
+                <input
+                  type="checkbox"
                   checked={settings.advanced.developerMode || false}
                   onChange={(e) => handleSettingChange('advanced', 'developerMode', e.target.checked)}
                   id="adv-dev"
+                  className="settings-toggle-input"
                 />
-                <label htmlFor="adv-dev" style={{ marginBottom: 0 }}>Developer Mode</label>
+                <label htmlFor="adv-dev" className="settings-toggle-label">
+                  Developer Mode
+                </label>
               </div>
 
-              <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="checkbox" 
+              <div className="settings-toggle-row">
+                <input
+                  type="checkbox"
                   checked={settings.advanced.betaFeatures || false}
                   onChange={(e) => handleSettingChange('advanced', 'betaFeatures', e.target.checked)}
                   id="adv-beta"
+                  className="settings-toggle-input"
                 />
-                <label htmlFor="adv-beta" style={{ marginBottom: 0 }}>Enable Beta Features</label>
+                <label htmlFor="adv-beta" className="settings-toggle-label">
+                  Enable Beta Features
+                </label>
               </div>
             </div>
           )}

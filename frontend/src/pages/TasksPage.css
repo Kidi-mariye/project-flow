@@ -1,17 +1,57 @@
 .task-search-bar {
   position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
 }
 
 .task-filters {
   position: absolute;
   top: 100%;
-  left: 0;
-  right: 0;
-  background-color: white;
-  border: 1px solid #ccc;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-top: none;
-  padding: 10px;
+  padding: 8px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   z-index: 10;
+  box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+  border-radius: 999px; /* pill */
+  min-width: 320px;
+  width: min(880px, 92%);
+  align-items: center;
+  justify-content: center;
+}
+
+.task-filters select,
+.task-filters .btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.task-filters select { min-width: 160px; }
+.task-filters .btn { padding: 8px 14px; }
+
+@media (max-width: 720px) {
+  .task-filters {
+    flex-direction: column;
+    border-radius: 12px;
+    padding: 12px;
+    width: calc(100% - 48px);
+  }
+
+  .task-filters select { width: 100%; min-width: auto; }
+  .task-filters .btn { width: 100%; }
+}
+
+/* Make the search input wider on the Tasks page and responsive */
+.task-search-bar input[type="search"] {
+  max-width: 560px;
+  width: 100%;
 }
