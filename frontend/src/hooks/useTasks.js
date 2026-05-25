@@ -79,8 +79,8 @@ export function useTasks() {
   }, [tasks, setData])
 
   const toggleTask = useCallback(async (task) => {
+    // Send minimal payload to avoid overwriting server-managed fields
     return editTask(task.id, {
-      ...task,
       completed: !task.completed,
     })
   }, [editTask])

@@ -63,6 +63,13 @@ function CreateTaskPage() {
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
+  // Ensure reminder is reset when no due date is set
+  useEffect(() => {
+    if (!form.due_date && form.reminder_days !== 0) {
+      setForm(prev => ({ ...prev, reminder_days: 0 }))
+    }
+  }, [form.due_date])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
@@ -201,11 +208,15 @@ function CreateTaskPage() {
             name="reminder_days"
             value={form.reminder_days}
             onChange={handleChange}
+            disabled={!form.due_date}
           >
             {REMINDER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
+          {!form.due_date && (
+            <small className="muted">Set a due date to enable reminders.</small>
+          )}
         </label>
 
         <div className="full-row-flex">

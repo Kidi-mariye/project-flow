@@ -33,6 +33,10 @@ function RegisterPage() {
     e.preventDefault()
     setError('')
     try {
+      if (form.password !== form.password_confirmation) {
+        setError('Passwords do not match')
+        return
+      }
       const user = await register(form.name, form.email, form.password)
       
       // Save profile image if provided
