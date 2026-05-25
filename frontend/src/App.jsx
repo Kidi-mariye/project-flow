@@ -44,6 +44,52 @@ const SIDEBAR_LINKS = [
 const PROFILE_IMAGES_KEY = 'task_manager_profile_images'
 const SETTINGS_STORAGE_KEY = 'project_flow_settings'
 
+function MetricIcon({ variant }) {
+  const sharedProps = {
+    width: 22,
+    height: 22,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  }
+
+  switch (variant) {
+    case 'projects':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </svg>
+      )
+    case 'completed':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="m8.75 12.25 2.15 2.15L15.5 9.8" />
+        </svg>
+      )
+    case 'progress':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 7.5v5l3 2" />
+        </svg>
+      )
+    case 'todo':
+      return (
+        <svg {...sharedProps} aria-hidden="true">
+          <rect x="6.5" y="6.5" width="11" height="11" rx="2" />
+          <path d="M9 10h6M9 13h4" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 const DEFAULT_SETTINGS = {
   general: {
     languageRegion: 'English (US)',
@@ -584,17 +630,17 @@ function App() {
       {
         label: 'High',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'high').length,
-        color: 'var(--status-blocked)',
+        color: 'var(--primary-600)',
       },
       {
         label: 'Medium',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'medium').length,
-        color: 'var(--status-at-risk)',
+        color: 'var(--indigo-400)',
       },
       {
         label: 'Low',
         value: allTasks.filter((task) => (task.priority || 'medium') === 'low').length,
-        color: 'var(--status-done)',
+        color: 'var(--indigo-200)',
       },
     ]
   }, [allTasks])
@@ -786,18 +832,30 @@ function App() {
 
               <div className="metrics-grid">
                 <div className="metric-card">
+                  <div className="metric-card__icon metric-card__icon--indigo">
+                    <MetricIcon variant="projects" />
+                  </div>
                   <p>Total Projects</p>
                   <h3>{allTasks.length}</h3>
                 </div>
                 <div className="metric-card">
+                  <div className="metric-card__icon metric-card__icon--red">
+                    <MetricIcon variant="completed" />
+                  </div>
                   <p>Completed</p>
                   <h3>{completedTasks.length}</h3>
                 </div>
                 <div className="metric-card">
+                  <div className="metric-card__icon metric-card__icon--teal">
+                    <MetricIcon variant="progress" />
+                  </div>
                   <p>Inprogress</p>
                   <h3>{inProgressTasks.length}</h3>
                 </div>
                 <div className="metric-card">
+                  <div className="metric-card__icon metric-card__icon--purple">
+                    <MetricIcon variant="todo" />
+                  </div>
                   <p>Todo</p>
                   <h3>{todoTasks.length}</h3>
                 </div>
@@ -810,15 +868,15 @@ function App() {
                     <div
                       className="distribution-circle"
                       style={{
-                        background: `conic-gradient(var(--status-done) 0 ${taskDistribution.completedPercent}%, var(--status-at-risk) ${taskDistribution.completedPercent}% ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}%, var(--status-review) ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}% 100%)`,
+                        background: `conic-gradient(var(--primary-600) 0 ${taskDistribution.completedPercent}%, var(--indigo-400) ${taskDistribution.completedPercent}% ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}%, var(--indigo-200) ${taskDistribution.completedPercent + taskDistribution.inProgressPercent}% 100%)`,
                       }}
                     >
                       <span>{allTasks.length}</span>
                     </div>
                     <ul className="distribution-legend">
                       <li><span className="legend-dot completed" />Completed ({completedTasks.length})</li>
-                      <li><span className="legend-dot inprogress" />Inprogress ({inProgressTasks.length})</li>
-                      <li><span className="legend-dot todo" />Todo ({todoTasks.length})</li>
+                      <li><span className="legend-dot inprogress" />In progress ({inProgressTasks.length})</li>
+                      <li><span className="legend-dot todo" />To do ({todoTasks.length})</li>
                     </ul>
                   </div>
                 </div>

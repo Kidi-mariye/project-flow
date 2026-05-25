@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTasks } from '../hooks/useTasks'
@@ -14,6 +14,7 @@ function TasksPage() {
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const searchBarRef = useRef(null)
   const [categoryId, setCategoryId] = useState('')
   const [priority, setPriority] = useState('')
   const [status, setStatus] = useState('')
@@ -97,7 +98,20 @@ function TasksPage() {
     <section className="page-section">
       <h2>Manage Projects</h2>
 
-      <div className="task-search-bar" onFocus={() => setShowFilters(true)} onBlur={() => setShowFilters(false)}>
+      <div
+        className="task-search-bar"
+        ref={searchBarRef}
+        onFocus={() => setShowFilters(true)}
+        onBlur={() => {
+          // Delay to allow focus to move to elements inside the dropdown
+          setTimeout(() => {
+            if (!searchBarRef.current) return
+            if (!searchBarRef.current.contains(document.activeElement)) {
+              setShowFilters(false)
+            }
+          }, 0)
+        }}
+      >
         <input
           type="search"
           value={search}
