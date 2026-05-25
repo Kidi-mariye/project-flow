@@ -18,6 +18,7 @@ class DashboardMetricsTest extends TestCase
         Carbon::setTestNow(Carbon::create(2026, 5, 11, 12, 0, 0));
 
         $user = User::factory()->create();
+        User::factory()->create();
         Sanctum::actingAs($user);
 
         Task::query()->create([
@@ -45,6 +46,8 @@ class DashboardMetricsTest extends TestCase
             ->assertJsonPath('tasks_by_priority.high', 1)
             ->assertJsonPath('tasks_by_priority.medium', 1)
             ->assertJsonPath('tasks_by_priority.low', 0)
+            ->assertJsonPath('team_members', 2)
+            ->assertJsonPath('active_today', 1)
             ->assertJsonPath('completion_percentage', 50);
 
         Carbon::setTestNow();

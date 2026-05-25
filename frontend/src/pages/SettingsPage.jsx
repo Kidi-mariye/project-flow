@@ -12,7 +12,6 @@ function SettingsPage() {
   const handleSettingChange = async (section, key, value) => {
     try {
       await updateSetting(section, key, value)
-      setHasChanges(false)
     } catch (err) {
       console.error('Failed to update setting:', err)
     }
