@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Task;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -47,12 +49,11 @@ class DashboardController extends Controller
             ->groupBy('priority')
             ->pluck('aggregate', 'priority');
 
-        $tasksUpdatedToday = (clone $taskQuery)
+        $teamMembers = User::query()->count();
+        $activeToday = Task::query()
             ->whereDate('updated_at', $now->toDateString())
-            ->count();
-
-        $activeToday = max(1, $tasksUpdatedToday);
-        $teamMembers = 1;
+            ->distinct('user_id')
+            ->count('user_id');
         $toDoPercentage = $totalTasks > 0 ? round(($pendingTasks / $totalTasks) * 100) : 0;
 
         // Calculate estimated hours logged: assume ~1 hour per completed task, ~0.5 per pending
