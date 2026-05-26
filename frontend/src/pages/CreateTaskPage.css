@@ -1,0 +1,55 @@
+.create-task-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+.create-task-card {
+  width: min(720px, 100%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+  padding: 20px;
+}
+
+.create-task-header {
+  margin-bottom: 16px;
+}
+
+.create-task-header h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1.25rem;
+}
+
+.create-task-card .notice {
+  margin-bottom: 14px;
+}
+
+.create-task-card .task-modal-form {
+  gap: 14px;
+}
+
+.create-task-card .task-modal-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .create-task-page {
+    padding-top: 0;
+  }
+
+  .create-task-card {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .create-task-card .task-modal-actions {
+    justify-content: stretch;
+  }
+
+  .create-task-card .task-modal-actions .btn {
+    flex: 1;
+  }
+}

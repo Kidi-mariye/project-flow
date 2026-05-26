@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useCategories } from '../hooks/useCategories'
 import { createTask, updateTask } from '../api'
 import { normalizeDateTimeForInput, deriveReminderAt, getApiErrorMessage } from '../utils/helpers'
+import './TasksPage.css'
+import './CreateTaskPage.css'
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low']
 const STATUS_OPTIONS = ['completed', 'inprogress', 'todo']
@@ -124,13 +126,19 @@ function CreateTaskPage() {
   }
 
   return (
-    <section className="page-section">
-      <h2>{editingTaskId ? 'Edit Project' : 'Add Project'}</h2>
+    <section className="page-section create-task-page">
+      <div className="create-task-card">
+        <div className="task-modal-header create-task-header">
+          <div>
+            <p className="task-modal-kicker">Project form</p>
+            <h2>{editingTaskId ? 'Edit Project' : 'Add Project'}</h2>
+          </div>
+        </div>
 
-      {message && <p className="notice ok">{message}</p>}
-      {error && <p className="notice error">{error}</p>}
+        {message && <p className="notice ok">{message}</p>}
+        {error && <p className="notice error">{error}</p>}
 
-      <form className="form-grid" onSubmit={handleSubmit}>
+        <form className="task-modal-form" onSubmit={handleSubmit}>
         <label>
           Project Name
           <input
@@ -142,96 +150,101 @@ function CreateTaskPage() {
           />
         </label>
 
-        <label>
-          Description
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            rows={3}
-          />
-        </label>
+          <label>
+            Description
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={3}
+            />
+          </label>
 
-        <label>
-          Category
-          <select
-            name="category_id"
-            value={form.category_id}
-            onChange={handleChange}
-          >
-            <option value="">Uncategorized</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-        </label>
+          <label>
+            Category
+            <select
+              name="category_id"
+              value={form.category_id}
+              onChange={handleChange}
+            >
+              <option value="">Uncategorized</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          Priority
-          <select
-            name="priority"
-            value={form.priority}
-            onChange={handleChange}
-          >
-            {PRIORITY_OPTIONS.map((priority) => (
-              <option key={priority} value={priority}>{priority}</option>
-            ))}
-          </select>
-        </label>
+          <div className="task-modal-grid">
+            <label>
+              Priority
+              <select
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+              >
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <option key={priority} value={priority}>{priority}</option>
+                ))}
+              </select>
+            </label>
 
-        <label>
-          Status
-          <select
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-          >
-            {STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-        </label>
+            <label>
+              Status
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-        <label>
-          Due Date
-          <input
-            type="datetime-local"
-            name="due_date"
-            value={form.due_date}
-            onChange={handleChange}
-          />
-        </label>
+          <div className="task-modal-grid">
+            <label>
+              Due Date
+              <input
+                type="datetime-local"
+                name="due_date"
+                value={form.due_date}
+                onChange={handleChange}
+              />
+            </label>
 
-        <label>
-          Reminder
-          <select
-            name="reminder_days"
-            value={form.reminder_days}
-            onChange={handleChange}
-            disabled={!form.due_date}
-          >
-            {REMINDER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          {!form.due_date && (
-            <small className="muted">Set a due date to enable reminders.</small>
-          )}
-        </label>
+            <label>
+              Reminder
+              <select
+                name="reminder_days"
+                value={form.reminder_days}
+                onChange={handleChange}
+                disabled={!form.due_date}
+              >
+                {REMINDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              {!form.due_date && (
+                <small className="muted">Set a due date to enable reminders.</small>
+              )}
+            </label>
+          </div>
 
-        <div className="full-row-flex">
-          <button type="submit" className="btn primary">
-            {editingTaskId ? 'Update Project' : 'Create Project'}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => navigate('/tasks')}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+          <div className="task-modal-actions">
+            <button type="submit" className="btn primary">
+              {editingTaskId ? 'Update Project' : 'Create Project'}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => navigate('/tasks')}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
   )
 }
