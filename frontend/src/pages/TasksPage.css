@@ -55,3 +55,121 @@
   max-width: 560px;
   width: 100%;
 }
+
+.task-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1500;
+}
+
+.task-modal {
+  width: min(720px, 100%);
+  max-height: min(90vh, 920px);
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+  padding: 20px;
+}
+
+.task-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.task-modal-kicker {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.task-modal-header h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1.25rem;
+}
+
+.task-modal-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.task-modal-form {
+  display: grid;
+  gap: 14px;
+}
+
+.task-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.task-modal-grid--compact {
+  align-items: end;
+}
+
+.task-modal-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 100%;
+}
+
+.task-modal-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.task-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .task-modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .task-modal {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-height: 94vh;
+  }
+
+  .task-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-modal-actions {
+    justify-content: stretch;
+  }
+
+  .task-modal-actions .btn {
+    flex: 1;
+  }
+}

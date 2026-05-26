@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import {
   BarElement,
@@ -69,6 +70,7 @@ function MetricGlyph({ variant }) {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate()
   const { currentUser, isAuthenticated } = useAuth()
   const { tasks, isLoading: tasksLoading, error: tasksError, loadTasks } = useTasks()
   const { data: metrics, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useFetch(fetchDashboardMetrics, null)
@@ -270,7 +272,7 @@ function DashboardPage() {
 
             <div className="row3">
               <div className="card">
-                <div className="card-hd"><span className="card-title">All projects</span><span className="card-link">View all →</span></div>
+                <div className="card-hd"><span className="card-title">All projects</span><button type="button" className="card-link" onClick={() => navigate('/tasks')}>View all →</button></div>
                 {tasks.slice(0,5).map((t, i) => (
                     <div className="prow" key={t.id}>
                   <div className="pdot" style={{ background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div>
@@ -283,7 +285,7 @@ function DashboardPage() {
               </div>
 
               <div className="card">
-                <div className="card-hd"><span className="card-title">My tasks</span><span className="card-link">+ Add</span></div>
+                <div className="card-hd"><span className="card-title">My tasks</span><button type="button" className="card-link" onClick={() => navigate('/create-task')}>+ Add</button></div>
                 {tasks.slice(0,5).map((t) => (
                   <div className="trow" key={`t-${t.id}`}>
                     <div className={`chk ${t.completed ? 'done' : ''}`}>{t.completed ? '✓' : null}</div>

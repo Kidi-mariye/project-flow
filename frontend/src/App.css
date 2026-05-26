@@ -1416,7 +1416,8 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+  color: rgba(226, 232, 240, 0.72);
+  opacity: 1;
 }
 
 input:focus,
