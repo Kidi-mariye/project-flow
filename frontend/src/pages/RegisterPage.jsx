@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getApiErrorMessage, fileToDataUrl } from '../utils/helpers'
 import '../App.css'
+import './AuthPages.css'
 
 function RegisterPage() {
   const { register, isLoading } = useAuth()
@@ -52,97 +53,123 @@ function RegisterPage() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
+    <main className="app-shell auth-shell-page">
+      <header className="topbar auth-topbar">
         <h1 className="project-flow-title">Task Manager</h1>
+        <p className="auth-topbar-subtitle">Plan. Track. Deliver.</p>
       </header>
 
-      <section className="panel auth-panel">
-        <div className="tab-row">
-          <Link to="/login" className="tab link-no-underline">
-            Login
-          </Link>
-          <button type="button" className="tab active">
-            Register
-          </button>
-        </div>
+      <section className="auth-layout">
+        <aside className="auth-hero auth-hero--register">
+          <p className="auth-eyebrow">Get started</p>
+          <h2>Create your workspace and keep every project organized.</h2>
+          <p>
+            Set up your account to manage tasks, attach reminders, and keep team progress in one place.
+          </p>
+          <ul className="auth-hero-list">
+            <li>Personalized project dashboard</li>
+            <li>Notifications and reminders built in</li>
+            <li>Quick updates with fewer clicks</li>
+          </ul>
+        </aside>
 
-        {error && <p className="notice error">{error}</p>}
+        <section className="panel auth-panel auth-card auth-card--register">
+          <div className="tab-row auth-tab-row">
+            <Link to="/login" className="tab link-no-underline">
+              Login
+            </Link>
+            <button type="button" className="tab active">
+              Register
+            </button>
+          </div>
 
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <label>
-            Full Name
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-            />
-          </label>
+          <p className="auth-card-title">Create your account</p>
 
-          <label>
-            Email
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </label>
+          {error && <p className="notice error">{error}</p>}
 
-          <label>
-            Password (min 8 characters)
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              minLength={8}
-              required
-            />
-          </label>
-          <label>
-            Confirm Password
-            <input
-              type="password"
-              name="password_confirmation"
-              value={form.password_confirmation}
-              onChange={handleChange}
-              minLength={8}
-              required
-            />
-          </label>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="auth-grid">
+              <label>
+                Full Name
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Your full name"
+                  required
+                />
+              </label>
 
-          <label>
-            Upload Profile Image
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageChange}
-            />
-            {imagePreview && (
-              <img 
-                src={imagePreview} 
-                alt="Profile preview" 
-                className="register-image-preview"
+              <label>
+                Email
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@company.com"
+                  required
+                />
+              </label>
+            </div>
+
+            <div className="auth-grid">
+              <label>
+                Password (min 8 characters)
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Choose a password"
+                  minLength={8}
+                  required
+                />
+              </label>
+              <label>
+                Confirm Password
+                <input
+                  type="password"
+                  name="password_confirmation"
+                  value={form.password_confirmation}
+                  onChange={handleChange}
+                  placeholder="Repeat your password"
+                  minLength={8}
+                  required
+                />
+              </label>
+            </div>
+
+            <label className="auth-file-field">
+              Upload Profile Image
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
               />
-            )}
-          </label>
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Profile preview"
+                  className="register-image-preview"
+                />
+              )}
+            </label>
 
-          <button 
-            type="submit" 
-            className="btn primary"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Creating...' : 'Create Account'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="btn primary auth-submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating...' : 'Create Account'}
+            </button>
+          </form>
 
-        <p className="center-mt20">
-          Already have an account? <Link to="/login" className="link-primary">Login</Link>
-        </p>
+          <p className="auth-footer">
+            Already have an account? <Link to="/login" className="link-primary">Login</Link>
+          </p>
+        </section>
       </section>
     </main>
   )
