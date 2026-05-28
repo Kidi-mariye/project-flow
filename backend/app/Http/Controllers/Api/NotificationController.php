@@ -13,11 +13,16 @@ class NotificationController extends Controller
         $user = $request->user();
         $perPage = max(1, min((int) $request->integer('per_page', 15), 100));
         $unreadOnly = $request->boolean('unread_only');
+        $type = $request->string('type')->toString();
 
         $query = $user->notifications()->latest();
 
         if ($unreadOnly) {
             $query->whereNull('read_at');
+        }
+
+        if ($type !== '') {
+            $query->where('type', $type);
         }
 
         $notifications = $query->paginate($perPage)->withQueryString();

@@ -100,4 +100,35 @@ class ReminderExecutionTest extends TestCase
         $this->user->refresh();
         $this->assertCount(3, $this->user->notifications);
     }
+
+    public function test_task_creation_uses_notification_timing_when_reminder_is_missing()
+    {
+        $this->user->update([
+            'settings' => [
+                'notifications' => [
+                    'enabled' => true,
+                    'reminderTiming' => '15',
+                ],
+            ],
+        ]);
+
+        $dueDate = now()->addDay()->seconds(0);
+
+        $response = $this->actingAs($this->user)->postJson('/api/tasks', [
+            'title' => 'Auto reminder task',
+            'priority' => 'medium',
+            'completed' => false,
+            'due_date' => $dueDate->toISOString(),
+        ]);
+
+        $response->assertCreated();
+
+        $task = Task::query()->latest('id')->first();
+
+        $this->assertNotNull($task->reminder_at);
+        $this->assertSame(
+            $dueDate->copy()->subMinutes(15)->toIso8601String(),
+            $task->reminder_at->toIso8601String()
+        );
+    }
 }

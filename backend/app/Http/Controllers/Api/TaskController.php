@@ -11,6 +11,35 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    private function applyReminderDefaults(array $validated, Request $request): array
+    {
+        if (empty($validated['due_date'])) {
+            $validated['reminder_at'] = null;
+
+            return $validated;
+        }
+
+        if (! empty($validated['reminder_at'])) {
+            return $validated;
+        }
+
+        $settings = $request->user()->settings ?? [];
+        $notificationsEnabled = data_get($settings, 'notifications.enabled', true);
+
+        if (! $notificationsEnabled) {
+            $validated['reminder_at'] = null;
+
+            return $validated;
+        }
+
+        $reminderTiming = (int) data_get($settings, 'notifications.reminderTiming', 10);
+        $validated['reminder_at'] = Carbon::parse($validated['due_date'])
+            ->subMinutes(max(0, $reminderTiming))
+            ->toISOString();
+
+        return $validated;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -60,7 +89,7 @@ class TaskController extends Controller
      */
     public function store(StoreTaskRequest $request)
     {
-        $validated = $request->validated();
+        $validated = $this->applyReminderDefaults($request->validated(), $request);
 
         $task = $request->user()->tasks()->create($validated);
 
@@ -82,7 +111,7 @@ class TaskController extends Controller
      */
     public function update(UpdateTaskRequest $request, string $id)
     {
-        $validated = $request->validated();
+        $validated = $this->applyReminderDefaults($request->validated(), $request);
 
         $task = auth()->user()->tasks()->findOrFail($id);
         $task->update($validated);

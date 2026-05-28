@@ -21,12 +21,16 @@ class TaskReminderNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $dueDate = optional($this->task->due_date)?->toIso8601String();
+
         return [
             'task_id' => $this->task->id,
             'title' => $this->task->title,
-            'due_date' => optional($this->task->due_date)?->toIso8601String(),
+            'due_date' => $dueDate,
             'reminder_at' => optional($this->task->reminder_at)?->toIso8601String(),
-            'message' => 'Task reminder is due.',
+            'message' => $dueDate
+                ? "Deadline reminder: {$this->task->title} is due soon."
+                : "Deadline reminder: {$this->task->title} needs attention.",
         ];
     }
 }

@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../hooks/useAuth'
 import { useFetch } from '../hooks/useFetch'
 import { useTasks } from '../hooks/useTasks'
+import { useNotifications } from '../hooks/useNotifications'
 import { fetchDashboardMetrics } from '../api'
 import { formatDateTime } from '../utils/helpers'
 
@@ -74,14 +75,25 @@ function DashboardPage() {
   const { currentUser, isAuthenticated } = useAuth()
   const { tasks, isLoading: tasksLoading, error: tasksError, loadTasks } = useTasks()
   const { data: metrics, isLoading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useFetch(fetchDashboardMetrics, null)
+  const {
+    notifications: reminderNotifications,
+    unreadCount: reminderUnreadCount,
+    isLoading: remindersLoading,
+    error: remindersError,
+    loadNotifications: loadReminderNotifications,
+  } = useNotifications()
 
-  const isLoading = tasksLoading || metricsLoading
-  const error = tasksError || metricsError
+  const isLoading = tasksLoading || metricsLoading || remindersLoading
+  const error = tasksError || metricsError || remindersError
 
   useEffect(() => {
     if (isAuthenticated) {
       loadTasks()
       refetchMetrics()
+      loadReminderNotifications({
+        per_page: 5,
+        type: 'App\\Notifications\\TaskReminderNotification',
+      })
     }
   }, [isAuthenticated])
 
@@ -301,6 +313,33 @@ function DashboardPage() {
                   <div className="wrow"><div className="wname">You</div><div className="wtrack"><div className="wfill" style={{ width: '60%', background:'var(--primary-100)' }}><span className="wlabel" style={{ color:'var(--primary-600)' }}>6 tasks</span></div></div></div>
                 </div>
               </div>
+            </div>
+
+            <div className="card dashboard-reminders-card">
+              <div className="card-hd">
+                <span className="card-title">Deadline reminders</span>
+                <span className="card-link">Unread: {reminderUnreadCount}</span>
+              </div>
+
+              {reminderNotifications.length === 0 ? (
+                <p className="dashboard-reminders-empty">No reminder notifications yet. Tasks with due dates will show up here when their reminder time arrives.</p>
+              ) : (
+                <div className="dashboard-reminders-list">
+                  {reminderNotifications.map((notification) => (
+                    <article key={notification.id} className={`dashboard-reminder-item ${notification.read_at ? 'is-read' : 'is-unread'}`}>
+                      <div className="dashboard-reminder-header">
+                        <span className="dashboard-reminder-badge">Reminder</span>
+                        <span className="dashboard-reminder-time">{notification.created_at ? formatDateTime(notification.created_at) : 'Just now'}</span>
+                      </div>
+                      <div className="dashboard-reminder-title">{notification.data?.title || 'Project reminder'}</div>
+                      <div className="dashboard-reminder-message">{notification.data?.message || 'Your project deadline is approaching.'}</div>
+                      <div className="dashboard-reminder-meta">
+                        {notification.data?.due_date ? `Due: ${formatDateTime(notification.data.due_date)}` : 'Due date unavailable'}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
