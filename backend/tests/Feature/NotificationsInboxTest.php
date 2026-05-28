@@ -47,4 +47,25 @@ class NotificationsInboxTest extends TestCase
         $this->assertDatabaseCount('notifications', 1);
         $this->assertNotNull($user->fresh()->notifications()->first()->read_at);
     }
+
+    public function test_notifications_inbox_can_filter_reminder_notifications(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $task = Task::query()->create([
+            'user_id' => $user->id,
+            'title' => 'Reminder task',
+            'priority' => 'medium',
+            'completed' => false,
+        ]);
+
+        $user->notify(new TaskReminderNotification($task));
+
+        $response = $this->getJson('/api/notifications?type=App\\Notifications\\TaskReminderNotification');
+
+        $response->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.type', 'App\\Notifications\\TaskReminderNotification');
+    }
 }
