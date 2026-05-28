@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import {
@@ -81,7 +81,12 @@ function DashboardPage() {
     isLoading: remindersLoading,
     error: remindersError,
     loadNotifications: loadReminderNotifications,
+    markAsRead: markReminderAsRead,
+    markAllAsRead: markAllRemindersAsRead,
   } = useNotifications()
+
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const prevUnreadRef = useRef(0)
 
   const isLoading = tasksLoading || metricsLoading || remindersLoading
   const error = tasksError || metricsError || remindersError
@@ -94,8 +99,73 @@ function DashboardPage() {
         per_page: 5,
         type: 'App\\Notifications\\TaskReminderNotification',
       })
+      .then((res) => {
+        const items = res?.data || []
+        const unread = items.filter((n) => !n.read_at).length
+        // dispatch unread count globally for topbar
+        try { window.dispatchEvent(new CustomEvent('reminderCount', { detail: { count: unread } })) } catch (e) {}
+        prevUnreadRef.current = unread
+        if (unread > 0) setShowReminderModal(true)
+      })
     }
   }, [isAuthenticated])
+
+  // Listen for programmatic open requests from the topbar
+  useEffect(() => {
+    const handler = () => setShowReminderModal(true)
+    window.addEventListener('openReminders', handler)
+    return () => window.removeEventListener('openReminders', handler)
+  }, [])
+
+  // When reminder notifications change, update global unread count
+  useEffect(() => {
+    const unread = (reminderNotifications || []).filter((n) => !n.read_at).length
+    try { window.dispatchEvent(new CustomEvent('reminderCount', { detail: { count: unread } })) } catch (e) {}
+    prevUnreadRef.current = unread
+  }, [reminderNotifications])
+
+  // Poll for reminders every minute and show a native notification when new unread reminders arrive
+  useEffect(() => {
+    if (!isAuthenticated) return undefined
+
+    let mounted = true
+
+    const fetchAndNotify = async () => {
+      try {
+        const res = await loadReminderNotifications({ per_page: 5, type: 'App\\Notifications\\TaskReminderNotification' })
+        if (!mounted) return
+        const items = res?.data || []
+        const unread = items.filter((n) => !n.read_at).length
+        try { window.dispatchEvent(new CustomEvent('reminderCount', { detail: { count: unread } })) } catch (e) {}
+
+        if (unread > prevUnreadRef.current) {
+          const first = items.find((n) => !n.read_at)
+          if (first && 'Notification' in window) {
+            const title = 'Project deadline soon'
+            const body = first.data?.message || first.data?.title || 'A project deadline is approaching.'
+            if (Notification.permission === 'granted') {
+              try { new Notification(title, { body }) } catch (e) {}
+            } else if (Notification.permission !== 'denied') {
+              const perm = await Notification.requestPermission()
+              if (perm === 'granted') {
+                try { new Notification(title, { body }) } catch (e) {}
+              }
+            }
+          }
+          setShowReminderModal(true)
+        }
+
+        prevUnreadRef.current = unread
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    // Run immediately and then every minute
+    fetchAndNotify()
+    const id = setInterval(fetchAndNotify, 60 * 1000)
+    return () => { mounted = false; clearInterval(id) }
+  }, [isAuthenticated, loadReminderNotifications])
 
   const priorityBarData = useMemo(() => {
     if (!metrics) return null
@@ -285,21 +355,27 @@ function DashboardPage() {
             <div className="row3">
               <div className="card">
                 <div className="card-hd"><span className="card-title">All projects</span><button type="button" className="card-link" onClick={() => navigate('/tasks')}>View all →</button></div>
-                {tasks.slice(0,5).map((t, i) => (
+                {tasks.slice(0,5).map((t, i) => {
+                  const progressPercent = typeof t.progress_percent !== 'undefined' && t.progress_percent !== null
+                    ? Number(t.progress_percent)
+                    : (t.completed ? 100 : 0)
+
+                  return (
                     <div className="prow" key={t.id}>
-                  <div className="pdot" style={{ background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div>
-                    <div className="pname">{t.title}</div>
-                  <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, (t.progress_percent||0))}%`, background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div></div>
-                    <div className="ppct">{t.progress_percent || 0}%</div>
-                    <span className={`pill ${t.status === 'ontrack' ? 'pill-g' : t.status === 'at-risk' ? 'pill-a' : 'pill-r'}`}>{t.status_label || 'On track'}</span>
-                  </div>
-                ))}
+                      <div className="pdot" style={{ background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div>
+                      <div className="pname">{t.title}</div>
+                      <div className="pbar"><div className="pbfill" style={{ width: `${Math.min(100, progressPercent)}%`, background: ['var(--primary-600)','var(--indigo-400)','var(--indigo-200)','var(--primary-500)','var(--indigo-300)'][i%5] }}></div></div>
+                      <div className="ppct">{progressPercent}%</div>
+                      <span className={`pill ${t.status === 'ontrack' ? 'pill-g' : t.status === 'at-risk' ? 'pill-a' : 'pill-r'}`}>{t.status_label || 'On track'}</span>
+                    </div>
+                  )
+                })}
               </div>
 
               <div className="card">
                 <div className="card-hd"><span className="card-title">My tasks</span><button type="button" className="card-link" onClick={() => navigate('/create-task')}>+ Add</button></div>
                 {tasks.slice(0,5).map((t) => (
-                  <div className="trow" key={`t-${t.id}`}>
+                  <div className={`trow ${t.completed ? 'done' : ''}`} key={`t-${t.id}`}>
                     <div className={`chk ${t.completed ? 'done' : ''}`}>{t.completed ? '✓' : null}</div>
                     <div className={`ttext ${t.completed ? 'done' : ''}`}>{t.title}</div>
                     <div className={`tdue ${t.due_date && new Date(t.due_date) <= new Date() ? 'hot' : ''}`}>{t.due_date ? formatDateTime(t.due_date) : 'No due'}</div>
@@ -315,32 +391,39 @@ function DashboardPage() {
               </div>
             </div>
 
-            <div className="card dashboard-reminders-card">
-              <div className="card-hd">
-                <span className="card-title">Deadline reminders</span>
-                <span className="card-link">Unread: {reminderUnreadCount}</span>
-              </div>
+            {/* Reminder popup appears when there are unread reminder notifications */}
+            {showReminderModal && reminderNotifications.length > 0 && (
+              <div className="reminder-modal-overlay" role="dialog" aria-modal="true">
+                <div className="reminder-modal">
+                  <div className="reminder-modal-hd">
+                    <h3>Deadline reminders</h3>
+                    <div className="reminder-modal-actions">
+                      <button type="button" className="btn ghost" onClick={async () => { await markAllRemindersAsRead(); setShowReminderModal(false); }}>
+                        Mark all read
+                      </button>
+                      <button type="button" className="btn" onClick={() => setShowReminderModal(false)}>Close</button>
+                    </div>
+                  </div>
 
-              {reminderNotifications.length === 0 ? (
-                <p className="dashboard-reminders-empty">No reminder notifications yet. Tasks with due dates will show up here when their reminder time arrives.</p>
-              ) : (
-                <div className="dashboard-reminders-list">
-                  {reminderNotifications.map((notification) => (
-                    <article key={notification.id} className={`dashboard-reminder-item ${notification.read_at ? 'is-read' : 'is-unread'}`}>
-                      <div className="dashboard-reminder-header">
-                        <span className="dashboard-reminder-badge">Reminder</span>
-                        <span className="dashboard-reminder-time">{notification.created_at ? formatDateTime(notification.created_at) : 'Just now'}</span>
-                      </div>
-                      <div className="dashboard-reminder-title">{notification.data?.title || 'Project reminder'}</div>
-                      <div className="dashboard-reminder-message">{notification.data?.message || 'Your project deadline is approaching.'}</div>
-                      <div className="dashboard-reminder-meta">
-                        {notification.data?.due_date ? `Due: ${formatDateTime(notification.data.due_date)}` : 'Due date unavailable'}
-                      </div>
-                    </article>
-                  ))}
+                  <div className="reminder-modal-body">
+                    {reminderNotifications.filter(n => !n.read_at).map((notification) => (
+                      <article key={notification.id} className="reminder-row">
+                        <div className="reminder-row-main">
+                          <div className="reminder-title">{notification.data?.title || 'Project reminder'}</div>
+                          <div className="reminder-message">{notification.data?.message || 'Your project deadline is approaching.'}</div>
+                          <div className="reminder-meta">{notification.data?.due_date ? `Due: ${formatDateTime(notification.data.due_date)}` : ''}</div>
+                        </div>
+                        <div className="reminder-row-actions">
+                          <button type="button" className="btn ghost" onClick={async () => { await markReminderAsRead(notification.id); }}>
+                            Mark read
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>

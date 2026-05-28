@@ -90,6 +90,19 @@ function MetricIcon({ variant }) {
   }
 }
 
+// Track global reminder count for the topbar
+const useGlobalReminderCount = () => {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const handler = (e) => setCount(e?.detail?.count || 0)
+    window.addEventListener('reminderCount', handler)
+    return () => window.removeEventListener('reminderCount', handler)
+  }, [])
+
+  return count
+}
+
 const DEFAULT_SETTINGS = {
   general: {
     languageRegion: 'English (US)',
@@ -707,10 +720,30 @@ function App() {
     }
   }, [allTasks.length, completedTasks.length, inProgressTasks.length])
 
+  const reminderCount = useGlobalReminderCount()
+
   return (
     <main className="app-shell">
       <header className="topbar">
-        <h1 className="project-flow-title">Good morning, mari</h1>
+        <div className="topbar-left">
+          <h1 className="project-flow-title">Good morning, mari</h1>
+        </div>
+        <div className="topbar-right">
+          <div className="topbar-notif-wrap">
+            <button
+              type="button"
+              className="topbar-notif"
+              aria-label="Open reminders"
+              onClick={() => window.dispatchEvent(new CustomEvent('openReminders'))}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="1.6">
+                <path d="M15 17H9a3 3 0 0 1-3-3V9a6 6 0 1 1 12 0v5a3 3 0 0 1-3 3z" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {reminderCount > 0 && <span className="notif-dot">{reminderCount}</span>}
+            </button>
+          </div>
+        </div>
       </header>
 
       {message ? <p className="notice ok">{message}</p> : null}
