@@ -121,6 +121,15 @@ function RootLayout({ children }) {
     reader.readAsDataURL(file)
   }
 
+  const handleResetAvatar = () => {
+    setProfilePreview('')
+    setProfileForm((current) => ({ ...current, avatarUrl: '' }))
+
+    if (currentUser?.email) {
+      localStorage.removeItem(`profile_image_${currentUser.email}`)
+    }
+  }
+
   const handleProfileSave = async () => {
     if (!currentUser) {
       return
@@ -137,8 +146,12 @@ function RootLayout({ children }) {
 
       setCurrentUser(updatedUser)
 
-      if (updatedUser?.email && profileForm.avatarUrl) {
-        localStorage.setItem(`profile_image_${updatedUser.email}`, profileForm.avatarUrl)
+      if (updatedUser?.email) {
+        if (profileForm.avatarUrl) {
+          localStorage.setItem(`profile_image_${updatedUser.email}`, profileForm.avatarUrl)
+        } else {
+          localStorage.removeItem(`profile_image_${updatedUser.email}`)
+        }
       }
 
       setProfileSaveState('Profile updated')
@@ -403,6 +416,9 @@ function RootLayout({ children }) {
                       onChange={handleAvatarChange}
                     />
                   </div>
+                  <button type="button" className="profile-modal-btn profile-modal-btn--secondary" onClick={handleResetAvatar}>
+                    Restore initial
+                  </button>
                 </div>
               </div>
 
