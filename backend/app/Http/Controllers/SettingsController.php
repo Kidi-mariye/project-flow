@@ -58,5 +58,42 @@ class SettingsController extends Controller
             'data' => $user->settings,
         ]);
     }
+
+    /**
+     * Update the authenticated user's profile details.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'avatarUrl' => 'nullable|string',
+        ]);
+
+        $user->name = $validated['name'];
+
+        $currentSettings = $user->settings ?? [];
+        $updatedSettings = array_replace_recursive($currentSettings, [
+            'account' => [
+                'name' => $validated['name'],
+                'avatarUrl' => $validated['avatarUrl'] ?? '',
+            ],
+        ]);
+
+        $user->settings = $updatedSettings;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'data' => [
+                'user' => $user->fresh(),
+            ],
+        ]);
+    }
 }
 

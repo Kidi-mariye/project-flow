@@ -85,6 +85,10 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updateCurrentUser = (nextUser) => {
+    setCurrentUser(nextUser)
+  }
+
   const value = {
     isAuthenticated,
     currentUser,
@@ -93,6 +97,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    setCurrentUser: updateCurrentUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

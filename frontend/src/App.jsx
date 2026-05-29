@@ -57,6 +57,18 @@ function MetricIcon({ variant }) {
     strokeLinejoin: 'round',
   }
 
+
+function formatDisplayName(name) {
+  const value = (name || 'User').trim()
+  if (!value) {
+    return 'User'
+  }
+
+  return value
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
   switch (variant) {
     case 'projects':
       return (
@@ -721,12 +733,16 @@ function App() {
   }, [allTasks.length, completedTasks.length, inProgressTasks.length])
 
   const reminderCount = useGlobalReminderCount()
+  const topbarName = useMemo(() => formatDisplayName(currentUser?.name), [currentUser?.name])
 
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="topbar-left">
-          <h1 className="project-flow-title">Good morning, mari</h1>
+          <div className="topbar-welcome">
+            <span className="topbar-greeting">Welcome</span>
+            <span className="topbar-username">{topbarName}</span>
+          </div>
         </div>
         <div className="topbar-right">
           <div className="topbar-notif-wrap">

@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useSettings } from '../hooks/useSettings'
 
 function SettingsPage() {
+  const location = useLocation()
   const { settings, isLoading, error, isSaving, saveError, loadSettings, updateSetting } = useSettings()
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'general')
 
   useEffect(() => {
     loadSettings()
-  }, [])
+  }, [loadSettings])
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab)
+    }
+  }, [location.state])
 
   const handleSettingChange = async (section, key, value) => {
     try {
