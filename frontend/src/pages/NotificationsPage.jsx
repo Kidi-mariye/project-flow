@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 import { getNotificationBadgeVariant, getNotificationTypeLabel } from '../utils/notifications'
+import { formatDateTime } from '../utils/helpers'
 
 function NotificationsPage() {
   const {
@@ -59,12 +60,12 @@ function NotificationsPage() {
                 <span className={`notification-type-badge ${getNotificationBadgeVariant(item.type)}`}>
                   {getNotificationTypeLabel(item.type)}
                 </span>
-                <span className="notification-time">{item.created_at ? new Date(item.created_at).toLocaleString() : 'Just now'}</span>
+                <span className="notification-time">{item.created_at ? formatDateTime(item.created_at) : 'Just now'}</span>
               </div>
               <div className="notification-title">{item.data?.title || 'Notification'}</div>
               <div className="notification-message">{item.data?.message || 'You have an update.'}</div>
               <div className="notification-meta">
-                {item.data?.due_date ? <span>Due: {new Date(item.data.due_date).toLocaleString()}</span> : null}
+                {item.data?.due_date ? <span>Due: {formatDateTime(item.data.due_date)}</span> : null}
               </div>
             </div>
             <div className="notification-actions">

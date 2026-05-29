@@ -350,6 +350,44 @@
   font-weight: 700;
 }
 
+.profile-edit-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(148,163,184,0.16);
+  background: rgba(15,23,42,0.04);
+}
+
+.profile-edit-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.profile-edit-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(148,163,184,0.16);
+  box-shadow: 0 12px 28px rgba(15,23,42,0.12);
+}
+
+.profile-edit-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--primary-600), var(--indigo-400));
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.profile-edit-fields {
+  flex: 1;
+  display: grid;
+  gap: 12px;
+}
+
 /* push main shell content below the fixed header */
 .app-shell {
   padding-top: var(--topbar-height);

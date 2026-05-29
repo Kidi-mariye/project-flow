@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { fetchUserSettings, updateUserSettings } from '../api'
 import { useFetch } from './useFetch'
+import { getStoredSettings, saveStoredSettings } from '../utils/helpers'
 
 const DEFAULT_SETTINGS = {
   general: {
@@ -62,18 +63,22 @@ const DEFAULT_SETTINGS = {
 export function useSettings() {
   const { data: settings, isLoading, error, refetch, setData } = useFetch(
     fetchUserSettings,
-    DEFAULT_SETTINGS
+    getStoredSettings() || DEFAULT_SETTINGS
   )
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
   const loadSettings = useCallback(async () => {
     try {
-      return await refetch()
+      const loaded = await refetch()
+      saveStoredSettings(loaded)
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: loaded }))
+      return loaded
     } catch (err) {
       console.error('Failed to load settings:', err)
       // Return defaults if fetch fails
       setData(DEFAULT_SETTINGS)
+      saveStoredSettings(DEFAULT_SETTINGS)
     }
   }, [refetch, setData])
 
@@ -83,6 +88,8 @@ export function useSettings() {
     try {
       const saved = await updateUserSettings(newSettings)
       setData(saved)
+      saveStoredSettings(saved)
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: saved }))
       return saved
     } catch (err) {
       setSaveError(err.message || 'Failed to save settings')
