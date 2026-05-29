@@ -329,6 +329,10 @@
   border-color: transparent;
 }
 
+.profile-modal-btn--secondary {
+  opacity: 0.9;
+}
+
 .profile-modal-btn.primary:hover,
 .profile-modal-btn.primary:focus-visible {
   background: linear-gradient(135deg, var(--primary-500), var(--indigo-300));
