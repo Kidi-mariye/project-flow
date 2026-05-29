@@ -173,6 +173,11 @@ export async function updateUserSettings(settings) {
   return data.data ?? data
 }
 
+export async function updateUserProfile(profile) {
+  const { data } = await api.put('/user/profile', profile)
+  return data.data?.user ?? data.data ?? data
+}
+
 export async function fetchNotifications(params = {}) {
   const { data } = await api.get('/notifications', { params })
   return data

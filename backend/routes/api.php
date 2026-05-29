@@ -33,4 +33,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings routes
     Route::get('/user/settings', [SettingsController::class, 'getSettings']);
     Route::put('/user/settings', [SettingsController::class, 'updateSettings']);
+    Route::put('/user/profile', [SettingsController::class, 'updateProfile']);
 });
