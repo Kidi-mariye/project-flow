@@ -1,8 +1,71 @@
-export function formatDateTime(value) {
+const SETTINGS_STORAGE_KEY = 'project_flow_settings'
+
+const LANGUAGE_REGION_LOCALES = {
+  'English (US)': 'en-US',
+  'English (UK)': 'en-GB',
+  Spanish: 'es-ES',
+  French: 'fr-FR',
+  German: 'de-DE',
+}
+
+export function getStoredSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveStoredSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function getLocaleFromSettings(settings = getStoredSettings()) {
+  const languageRegion = settings?.general?.languageRegion || 'English (US)'
+  return LANGUAGE_REGION_LOCALES[languageRegion] || 'en-US'
+}
+
+export function formatDateWithSettings(value, options = {}) {
   if (!value) {
     return 'N/A'
   }
-  return new Date(value).toLocaleString()
+
+  const storedSettings = getStoredSettings()
+  const locale = options.locale || getLocaleFromSettings(storedSettings)
+
+  return new Date(value).toLocaleDateString(locale, options.dateOptions)
+}
+
+export function formatDateTime(value, options = {}) {
+  if (!value) {
+    return 'N/A'
+  }
+
+  const storedSettings = getStoredSettings()
+  const locale = options.locale || getLocaleFromSettings(storedSettings)
+  const timeFormat = options.timeFormat || storedSettings?.general?.timeFormat || '24h'
+
+  return new Date(value).toLocaleString(locale, {
+    hour12: timeFormat === '12h',
+  })
+}
+
+export function getStoredProjectSettings() {
+  const settings = getStoredSettings()
+  return settings?.projects || null
+}
+
+export function getStatusOptionsFromSettings(settings = getStoredSettings()) {
+  const customStatuses = settings?.projects?.customStatuses || 'todo, inprogress, completed'
+  return customStatuses
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
 }
 
 export function normalizeDateTimeForInput(value) {

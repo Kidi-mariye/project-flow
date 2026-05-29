@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCategories } from '../hooks/useCategories'
 import { createTask, updateTask } from '../api'
-import { normalizeDateTimeForInput, deriveReminderAt, getApiErrorMessage } from '../utils/helpers'
+import { normalizeDateTimeForInput, deriveReminderAt, getApiErrorMessage, getStoredSettings, getStatusOptionsFromSettings } from '../utils/helpers'
 import './TasksPage.css'
 import './CreateTaskPage.css'
 
 const PRIORITY_OPTIONS = ['high', 'medium', 'low']
-const STATUS_OPTIONS = ['completed', 'inprogress', 'todo']
 const REMINDER_OPTIONS = [
   { label: 'No reminder', value: 0 },
   { label: '1 day before', value: 1 },
@@ -23,15 +22,41 @@ function CreateTaskPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [editingTaskId, setEditingTaskId] = useState(null)
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    category_id: '',
-    priority: 'medium',
-    status: 'todo',
-    due_date: '',
-    reminder_days: 0,
-  })
+
+  const statusOptions = getStatusOptionsFromSettings()
+
+  const buildDefaultForm = () => {
+    const storedSettings = getStoredSettings()
+    const projectSettings = storedSettings?.projects || {}
+    const defaultDueDateOption = projectSettings.defaultDueDate || 'none'
+    const defaultPriority = projectSettings.defaultPriority || 'medium'
+
+    const dueDate = (() => {
+      const baseDate = new Date()
+      if (defaultDueDateOption === 'today') {
+        return normalizeDateTimeForInput(baseDate.toISOString())
+      }
+      if (defaultDueDateOption === 'tomorrow') {
+        return normalizeDateTimeForInput(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+      }
+      if (defaultDueDateOption === 'week') {
+        return normalizeDateTimeForInput(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
+      }
+      return ''
+    })()
+
+    return {
+      title: '',
+      description: '',
+      category_id: '',
+      priority: defaultPriority,
+      status: defaultDueDateOption === 'none' ? 'todo' : 'inprogress',
+      due_date: dueDate,
+      reminder_days: 0,
+    }
+  }
+
+  const [form, setForm] = useState(buildDefaultForm)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -52,7 +77,7 @@ function CreateTaskPage() {
         description: task.description || '',
         category_id: task.category_id ? String(task.category_id) : '',
         priority: task.priority || 'medium',
-        status: task.completed ? 'completed' : (task.due_date ? 'inprogress' : 'todo'),
+        status: task.completed ? 'completed' : (task.due_date ? 'inprogress' : (statusOptions[0] || 'todo')),
         due_date: normalizeDateTimeForInput(task.due_date),
         reminder_days: reminderDays,
       })
@@ -107,15 +132,7 @@ function CreateTaskPage() {
       }
 
       // Reset form
-      setForm({
-        title: '',
-        description: '',
-        category_id: '',
-        priority: 'medium',
-        status: 'todo',
-        due_date: '',
-        reminder_days: 0,
-      })
+      setForm(buildDefaultForm())
       setEditingTaskId(null)
 
       // Redirect to tasks page
@@ -195,7 +212,7 @@ function CreateTaskPage() {
                 value={form.status}
                 onChange={handleChange}
               >
-                {STATUS_OPTIONS.map((status) => (
+                {statusOptions.map((status) => (
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>

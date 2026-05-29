@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useSettings } from '../hooks/useSettings'
+import { useAuth } from '../hooks/useAuth'
+import { updateUserProfile } from '../api'
 
 function SettingsPage() {
   const location = useLocation()
   const { settings, isLoading, error, isSaving, saveError, loadSettings, updateSetting } = useSettings()
+  const { currentUser, setCurrentUser } = useAuth()
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'general')
+  const [profileForm, setProfileForm] = useState({ name: '', avatarUrl: '' })
+  const [profilePreview, setProfilePreview] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMessage, setProfileMessage] = useState('')
 
   useEffect(() => {
     loadSettings()
@@ -16,6 +23,72 @@ function SettingsPage() {
       setActiveTab(location.state.activeTab)
     }
   }, [location.state])
+
+  useEffect(() => {
+    const initialAvatar = settings?.account?.avatarUrl || (currentUser?.email ? localStorage.getItem(`profile_image_${currentUser.email}`) : '') || ''
+    setProfileForm({
+      name: currentUser?.name || settings?.account?.name || '',
+      avatarUrl: initialAvatar,
+    })
+    setProfilePreview(initialAvatar)
+  }, [currentUser, settings?.account])
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const value = typeof reader.result === 'string' ? reader.result : ''
+      setProfilePreview(value)
+      setProfileForm((current) => ({ ...current, avatarUrl: value }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleResetAvatar = () => {
+    setProfilePreview('')
+    setProfileForm((current) => ({ ...current, avatarUrl: '' }))
+
+    if (currentUser?.email) {
+      localStorage.removeItem(`profile_image_${currentUser.email}`)
+    }
+  }
+
+  const handleProfileSave = async () => {
+    if (!profileForm.name.trim()) {
+      setProfileMessage('Name is required.')
+      return
+    }
+
+    setProfileSaving(true)
+    setProfileMessage('')
+
+    try {
+      const updatedUser = await updateUserProfile({
+        name: profileForm.name.trim(),
+        avatarUrl: profileForm.avatarUrl,
+      })
+
+      setCurrentUser(updatedUser)
+      if (updatedUser?.email) {
+        if (profileForm.avatarUrl) {
+          localStorage.setItem(`profile_image_${updatedUser.email}`, profileForm.avatarUrl)
+        } else {
+          localStorage.removeItem(`profile_image_${updatedUser.email}`)
+        }
+      }
+
+      setProfileMessage('Profile updated successfully.')
+      await loadSettings()
+    } catch (err) {
+      setProfileMessage(err?.message || 'Could not update profile.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   const handleSettingChange = async (section, key, value) => {
     try {
@@ -208,20 +281,70 @@ function SettingsPage() {
 
           {activeTab === 'account' && settings?.account && (
             <div>
-              <p style={{ color: 'var(--slate-700)', marginBottom: '20px' }}>
-                Account settings are managed from your profile. To change your name or email, please update your profile.
-              </p>
-              <div className="settings-toggle-row settings-toggle-row--disabled">
+              <div className="profile-edit-card" style={{ marginBottom: '20px' }}>
+                <div className="profile-edit-avatar-wrap">
+                  {profilePreview ? (
+                    <img src={profilePreview} alt="Profile preview" className="profile-edit-avatar" />
+                  ) : (
+                    <div className="profile-edit-avatar profile-edit-avatar-fallback">
+                      {(profileForm.name || currentUser?.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="profile-edit-fields">
+                  <label>
+                    Name
+                    <input
+                      type="text"
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+                      className="form-input"
+                    />
+                  </label>
+
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={currentUser?.email || settings.account.email || ''}
+                      className="form-input"
+                      disabled
+                    />
+                  </label>
+
+                  <label>
+                    Avatar
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="form-input" />
+                  </label>
+
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button type="button" className="btn ghost" onClick={handleResetAvatar}>
+                      Restore initial
+                    </button>
+                    <button type="button" className="btn primary" onClick={handleProfileSave} disabled={profileSaving}>
+                      {profileSaving ? 'Saving...' : 'Save Profile'}
+                    </button>
+                  </div>
+
+                  {profileMessage ? (
+                    <div className="notice" style={{ marginTop: '12px' }}>
+                      {profileMessage}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="settings-toggle-row">
                 <input
                   type="checkbox"
                   checked={settings.account.twoFactorEnabled || false}
                   onChange={(e) => handleSettingChange('account', 'twoFactorEnabled', e.target.checked)}
                   id="account-2fa"
                   className="settings-toggle-input"
-                  disabled
                 />
-                <label htmlFor="account-2fa" className="settings-toggle-label settings-toggle-label--disabled">
-                  Two-Factor Authentication (Coming Soon)
+                <label htmlFor="account-2fa" className="settings-toggle-label">
+                  Two-Factor Authentication
                 </label>
               </div>
             </div>

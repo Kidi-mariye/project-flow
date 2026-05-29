@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useNotifications } from '../hooks/useNotifications'
-import { updateUserProfile } from '../api'
+import { fetchUserSettings, updateUserProfile } from '../api'
+import { formatDateTime, formatDateWithSettings, getStoredSettings, saveStoredSettings } from '../utils/helpers'
 import { getNotificationBadgeVariant, getNotificationTypeLabel } from '../utils/notifications'
 import '../App.css'
 
@@ -36,6 +37,46 @@ function RootLayout({ children }) {
       loadNotifications({ unread_only: true, per_page: 1 })
     }
   }, [isAuthenticated, loadNotifications])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return undefined
+    }
+
+    let mounted = true
+
+    const syncSettings = async () => {
+      try {
+        const settings = await fetchUserSettings()
+        if (!mounted) return
+        saveStoredSettings(settings)
+        window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }))
+      } catch {
+        // Keep any stored settings if backend sync fails.
+      }
+    }
+
+    syncSettings()
+
+    return () => {
+      mounted = false
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    const applyTheme = (settings) => {
+      const theme = settings?.general?.theme || 'light'
+      document.body.classList.remove('theme-light', 'theme-dark', 'theme-custom')
+      document.body.classList.add(`theme-${theme}`)
+    }
+
+    applyTheme(getStoredSettings())
+
+    const handleSettingsUpdated = (event) => applyTheme(event?.detail)
+    window.addEventListener('settingsUpdated', handleSettingsUpdated)
+
+    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdated)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -280,7 +321,7 @@ function RootLayout({ children }) {
                             <span className={`notif-type-badge ${getNotificationBadgeVariant(item.type)}`}>
                               {getNotificationTypeLabel(item.type)}
                             </span>
-                            <span className="notif-item-time">{item.created_at ? new Date(item.created_at).toLocaleString() : 'Just now'}</span>
+                            <span className="notif-item-time">{item.created_at ? formatDateTime(item.created_at) : 'Just now'}</span>
                           </span>
                           <span className="notif-item-title">{item.data?.title || 'Notification'}</span>
                           <span className="notif-item-message">{item.data?.message || 'Tap to open details.'}</span>
@@ -292,7 +333,7 @@ function RootLayout({ children }) {
               )}
             </div>
 
-            <span className="topbar-date topbar-date-right">{new Date().toLocaleDateString()}</span>
+            <span className="topbar-date topbar-date-right">{formatDateWithSettings(new Date().toISOString())}</span>
 
             <div className="topbar-action-wrap" ref={actionRef}>
               <button
