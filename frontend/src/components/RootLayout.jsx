@@ -11,6 +11,7 @@ const SIDEBAR_LINKS = [
   { id: '/dashboard', label: 'Dashboard', path: '/dashboard' },
   { id: '/tasks', label: 'Manage Projects', path: '/tasks' },
   { id: '/create-task', label: 'Add Project', path: '/create-task' },
+  { id: '/categories', label: 'Categories', path: '/categories' },
   { id: '/notifications', label: 'Notifications', path: '/notifications' },
   { id: '/settings', label: 'Settings', path: '/settings' },
 ]
@@ -186,6 +187,11 @@ function RootLayout({ children }) {
       })
 
       setCurrentUser(updatedUser)
+
+      if (updatedUser?.settings) {
+        saveStoredSettings(updatedUser.settings)
+        window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedUser.settings }))
+      }
 
       if (updatedUser?.email) {
         if (profileForm.avatarUrl) {

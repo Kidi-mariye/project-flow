@@ -137,7 +137,14 @@ APP_DEBUG=true
 DB_CONNECTION=sqlite
 SANCTUM_STATEFUL_DOMAINS=localhost:5173,localhost:3000
 SESSION_DOMAIN=localhost
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS=hello@example.com
+MAIL_FROM_NAME="${APP_NAME}"
 ```
+
+For production, replace `MAIL_MAILER=log` with a real mailer (SMTP or a provider)
+and set `MAIL_FROM_ADDRESS` to a verified address. See [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)
+for the provider checklist.
 
 ### Frontend (.env.local)
 
@@ -313,7 +320,19 @@ APP_DEBUG=false
 APP_URL=https://yourdomain.com
 ```
 
-2. Run optimization:
+2. Configure a real mail provider so 2FA codes and task reminders are actually
+   delivered (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.yourprovider.com
+MAIL_PORT=587
+MAIL_USERNAME=your-username
+MAIL_PASSWORD=your-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+```
+
+3. Run optimization:
 ```bash
 composer install --optimize-autoloader --no-dev
 php artisan config:cache
@@ -322,16 +341,37 @@ php artisan view:cache
 php artisan migrate --force
 ```
 
-3. Deploy using your preferred hosting service
+4. Deploy using your preferred hosting service
+
+5. Add a cron entry so scheduled tasks (email/database reminders) run every
+   minute. Without this, reminders are never sent:
+```bash
+* * * * * cd /path/to/backend && php artisan schedule:run >> /dev/null 2>&1
+```
+   On shared hosting, add this as a cron job in your host's control panel
+   (point it at the backend directory).
+
+6. Verify email delivery (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
+```bash
+php artisan tinker --execute="Mail::raw('Mail provider check', function (\$m) { \$m->to('you@example.com'); });"
+```
 
 ### Frontend Deployment
 
-1. Build for production:
+1. Build for production. The build output is written into `backend/public/`
+   so Laravel serves the SPA directly (no separate static host needed):
 ```bash
+cd frontend
 npm run build
 ```
 
-2. Deploy the `dist/` directory to your hosting service
+2. Serve the backend with your web server pointing its document root at
+   `backend/public/`. The SPA routes and `/api/*` both work from that root;
+   client-side routes (e.g. `/dashboard`) are handled by
+   `backend/routes/web.php`.
+
+3. If you deploy the frontend to a separate static host instead, set
+   `VITE_API_BASE_URL` to the API URL before building.
 
 ---
 
@@ -371,6 +411,7 @@ When contributing to this project:
 After setup, review:
 - [API.md](./API.md) - Complete API documentation
 - [MVC_ANALYSIS.md](./MVC_ANALYSIS.md) - Architecture analysis and next improvements
+- [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md) - Mail provider checklist (required before production)
 
 ---
 

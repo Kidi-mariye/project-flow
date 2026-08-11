@@ -8,6 +8,11 @@ yarn-error.log*
 frontend/node_modules/
 frontend/dist/
 
+# Frontend production build output (written into backend/public by vite build)
+backend/public/index.html
+backend/public/assets/
+backend/public/favicon.svg
+
 # Laravel
 backend/vendor/
 backend/storage/*.key

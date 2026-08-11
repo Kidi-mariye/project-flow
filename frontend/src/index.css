@@ -16,20 +16,20 @@ html {
 
 :root {
   /* Primary (Indigo) */
-  --indigo-100: #E0E7FF;
-  --indigo-200: #C7D2FE;
-  --indigo-300: #A5B4FC;
-  --indigo-400: #818CF8;
-  --primary-700: #4338CA;
-  --primary-600: #4F46E5;
-  --primary-500: #6366F1;
-  --primary-100: #EEF2FF;
+  --indigo-100: #CCFBF1;
+  --indigo-200: #99F6E4;
+  --indigo-300: #5EEAD4;
+  --indigo-400: #2DD4BF;
+  --primary-700: #0F766E;
+  --primary-600: #14B8A6;
+  --primary-500: #2DD4BF;
+  --primary-100: #F0FDFA;
 
   /* Primary RGB tokens (for rgba uses) */
-  --primary-700-rgb: 67,56,202;
-  --primary-600-rgb: 79,70,229;
-  --primary-500-rgb: 99,102,241;
-  --primary-100-rgb: 238,242,255;
+  --primary-700-rgb: 15,118,110;
+  --primary-600-rgb: 20,184,166;
+  --primary-500-rgb: 45,212,191;
+  --primary-100-rgb: 240,253,250;
 
   /* Status colors */
   --status-done: #16A34A; /* green */
@@ -54,8 +54,8 @@ html {
   --slate-500: #64748B;
   --slate-700: #334155;
   --slate-900: #0F172A;
-  --navy-900: #1E293B;
-  --navy-950: #0F172A;
+  --navy-900: #062A33;
+  --navy-950: #03151C;
   --soft-green: #F0FDF4;
   --soft-green-border: #DCFCE7;
 
