@@ -59,12 +59,18 @@
     </style>
 </head>
 <body>
+    @php
+        $purposeLabel = $purpose === 'password-reset'
+            ? 'password reset'
+            : str_replace(['-', '_'], ' ', $purpose) . ' sign-in';
+        $expiryMinutes = $purpose === 'password-reset' ? 30 : 10;
+    @endphp
     <div class="container">
         <p class="eyebrow">Task Manager</p>
         <h1>Hello {{ $userName }},</h1>
-        <p>You requested a {{ str_replace(['-', '_'], ' ', $purpose) }} sign-in code. Use the code below to continue:</p>
+        <p>You requested a {{ $purposeLabel }} code. Use the code below to continue:</p>
         <div class="code">{{ $code }}</div>
-        <p class="note">This code expires in 10 minutes. If you did not request this, you can ignore this email.</p>
+        <p class="note">This code expires in {{ $expiryMinutes }} minutes. If you did not request this, you can ignore this email.</p>
         <div class="footer">
             This message was sent automatically by Task Manager.
         </div>

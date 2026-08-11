@@ -313,6 +313,10 @@ php artisan db:seed
 
 ### Docker Deployment (recommended)
 
+> **Follow [DEPLOY.md](./DEPLOY.md)** for the full step-by-step server runbook
+> (DNS, VPS setup, TLS via Caddy, email verification, backups, launch
+> checklist). This section summarizes the configuration.
+
 The repo ships a containerized setup (`backend/Dockerfile`,
 `docker-compose.yml`, `.dockerignore`) that runs Nginx + PHP-FPM, the Laravel
 scheduler, and a queue worker. The SPA is built **inside** the image, so a
@@ -556,6 +560,7 @@ When contributing to this project:
 ## Next Steps
 
 After setup, review:
+- [DEPLOY.md](./DEPLOY.md) - Production deployment runbook (DNS, VPS, TLS, backups)
 - [API.md](./API.md) - Complete API documentation
 - [MVC_ANALYSIS.md](./MVC_ANALYSIS.md) - Architecture analysis and next improvements
 - [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md) - Mail provider checklist (required before production)

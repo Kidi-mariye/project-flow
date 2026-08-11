@@ -48,6 +48,37 @@ class PasswordResetTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_forgot_password_returns_debug_code_only_in_local_log_mailer(): void
+    {
+        $this->app['env'] = 'local';
+        $this->app['config']->set('mail.default', 'log');
+
+        $user = User::factory()->create();
+
+        $response = $this->postJson('/api/auth/forgot-password', [
+            'email' => $user->email,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['message', 'debug_code']);
+
+        $this->assertMatchesRegularExpression('/^\d{6}$/', $response->json('debug_code'));
+    }
+
+    public function test_forgot_password_omits_debug_code_in_production(): void
+    {
+        $this->app['env'] = 'production';
+
+        $user = User::factory()->create();
+
+        $response = $this->postJson('/api/auth/forgot-password', [
+            'email' => $user->email,
+        ]);
+
+        $response->assertOk();
+        $this->assertArrayNotHasKey('debug_code', $response->json());
+    }
+
     public function test_reset_password_requires_confirmed_password(): void
     {
         $user = User::factory()->create();

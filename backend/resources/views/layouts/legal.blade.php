@@ -90,7 +90,10 @@
             @yield('content')
         </main>
         <footer>
-            {{ config('app.name') }} · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+            {{ config('legal.company_name') }} · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+            @if (config('legal.contact_email'))
+                · <a href="mailto:{{ config('legal.contact_email') }}">{{ config('legal.contact_email') }}</a>
+            @endif
         </footer>
     </div>
 </body>

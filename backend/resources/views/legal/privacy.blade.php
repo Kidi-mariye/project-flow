@@ -44,8 +44,18 @@
     <ul>
         <li>You may update your name and email from Settings.</li>
         <li>You may delete tasks, categories, and other content at any time.</li>
-        <li>To request account deletion or a copy of your data, contact us through the Service.</li>
+        <li>To request account deletion or a copy of your data, contact us below.</li>
     </ul>
+
+    <h2>Contact us</h2>
+    <p>
+        Questions about this policy or your data should be sent to
+        <a href="mailto:{{ config('legal.contact_email') }}">{{ config('legal.contact_email') }}</a>
+        @if (config('legal.address'))
+            or by post to {{ config('legal.address') }}
+        @endif
+        .
+    </p>
 
     <h2>Children</h2>
     <p>The Service is not directed to children under 13, and we do not knowingly collect their data.</p>

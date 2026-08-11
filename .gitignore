@@ -13,11 +13,15 @@ backend/public/index.html
 backend/public/assets/
 backend/public/favicon.svg
 
+# Root .env used by docker compose for ${DOMAIN} / ${APP_IMAGE} interpolation
+.env
+
 # Laravel
 backend/vendor/
 backend/storage/*.key
 backend/.env
 backend/.env.*
+!backend/.env.example
 backend/public/storage
 backend/bootstrap/cache/*.php
 

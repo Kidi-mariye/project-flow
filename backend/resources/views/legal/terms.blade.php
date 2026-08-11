@@ -53,6 +53,24 @@
         consequential damages arising from your use of the Service.
     </p>
 
+    @if (config('legal.jurisdiction'))
+        <h2>Governing law</h2>
+        <p>
+            These Terms are governed by the laws of {{ config('legal.jurisdiction') }},
+            without regard to its conflict-of-laws principles.
+        </p>
+    @endif
+
+    <h2>Contact us</h2>
+    <p>
+        For questions about these Terms, contact
+        <a href="mailto:{{ config('legal.contact_email') }}">{{ config('legal.contact_email') }}</a>
+        @if (config('legal.address'))
+            or by post to {{ config('legal.address') }}
+        @endif
+        .
+    </p>
+
     <h2>Changes</h2>
     <p>
         We may update these Terms from time to time. Material changes will be announced

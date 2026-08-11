@@ -21,9 +21,13 @@ function ForgotPasswordPage() {
     setStatus('')
     setIsLoading(true)
     try {
-      await forgotPassword(email.trim())
+      const res = await forgotPassword(email.trim())
+      if (res.debug_code) {
+        setStatus(`Dev mailer is active — your reset code is ${res.debug_code}. It expires in 30 minutes.`)
+      } else {
+        setStatus('If that email address is registered, a 6-digit reset code has been sent. It expires in 30 minutes.')
+      }
       setStep('reset')
-      setStatus('If that email address is registered, a 6-digit reset code has been sent. It expires in 30 minutes.')
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not request a reset code.'))
     } finally {

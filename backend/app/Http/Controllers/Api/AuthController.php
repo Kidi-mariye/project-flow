@@ -71,6 +71,20 @@ class AuthController extends Controller
         ));
     }
 
+    /**
+     * In local development with the "log" mailer no email is actually
+     * delivered, so the verification code is returned in the response for
+     * manual entry. Never included outside that exact configuration.
+     */
+    private function debugCodePayload(?string $code): array
+    {
+        if ($code !== null && app()->environment('local') && config('mail.default') === 'log') {
+            return ['debug_code' => $code];
+        }
+
+        return [];
+    }
+
     private function issueTokenResponse(User $user, string $message = 'Login successful'): array
     {
         $token = $user->createToken('api-token')->plainTextToken;
@@ -166,12 +180,12 @@ class AuthController extends Controller
                 $challenge = $this->createChallenge($user, 'two-factor');
                 $this->sendChallengeEmail($user, $challenge['verification_code'], 'two-factor');
 
-                return response()->json([
+                return response()->json(array_merge([
                     'requires_verification' => true,
                     'verification_type' => 'two-factor',
                     'challenge_id' => $challenge['challenge_id'],
                     'message' => 'Two-factor verification required. Check your email for the code.',
-                ]);
+                ], $this->debugCodePayload($challenge['verification_code'])));
             }
 
             return response()->json($this->issueTokenResponse($user));
@@ -181,12 +195,12 @@ class AuthController extends Controller
             $challenge = $this->createChallenge($user, 'magic-link');
             $this->sendChallengeEmail($user, $challenge['verification_code'], 'magic-link');
 
-            return response()->json([
+            return response()->json(array_merge([
                 'requires_verification' => true,
                 'verification_type' => 'magic-link',
                 'challenge_id' => $challenge['challenge_id'],
                 'message' => 'Magic-link verification required. Check your email for the code.',
-            ]);
+            ], $this->debugCodePayload($challenge['verification_code'])));
         }
 
         throw ValidationException::withMessages([
@@ -261,9 +275,9 @@ class AuthController extends Controller
             $this->sendChallengeEmail($user, $code, 'password-reset');
         }
 
-        return response()->json([
+        return response()->json(array_merge([
             'message' => 'If that email address is registered, a password reset code has been sent.',
-        ]);
+        ], $this->debugCodePayload($code ?? null)));
     }
 
     public function resetPassword(Request $request)
