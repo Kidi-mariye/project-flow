@@ -311,6 +311,69 @@ php artisan db:seed
 
 ## Production Deployment
 
+### Docker Deployment (recommended)
+
+The repo ships a containerized setup (`backend/Dockerfile`,
+`docker-compose.yml`, `.dockerignore`) that runs Nginx + PHP-FPM, the Laravel
+scheduler, and a queue worker. The SPA is built **inside** the image, so a
+`git pull` is all you need on the server.
+
+**Requirements on the host:** Docker + Docker Compose plugin (any VPS or cloud
+VM, e.g. DigitalOcean, Hetzner, Lightsail).
+
+1. Clone the repo and create the environment file:
+```bash
+git clone <repo-url> && cd Task\ Manager
+cp backend/.env.example backend/.env
+```
+2. Fill in production values in `backend/.env` (see "Backend Deployment"
+   below for the full list). At minimum:
+```
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+APP_KEY=<run: php artisan key:generate --show and paste the output>
+MAIL_MAILER=smtp        # real provider, see MAIL_PROVIDERS.md
+MAIL_HOST=smtp.yourprovider.com
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+SESSION_SECURE_COOKIE=true
+APP_FORCE_HTTPS=true
+TRUST_PROXIES=*
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+LOG_LEVEL=warning
+LOG_CHANNEL=daily
+```
+   `APP_KEY` is not in the compose file on purpose: if it is missing, the
+   container generates one and persists it in the shared storage volume.
+
+3. Start the stack:
+```bash
+docker compose up -d --build
+```
+   First boot runs `php artisan migrate --force` automatically and builds the
+   Laravel caches. On subsequent starts nothing is re-migrated.
+
+4. Terminate TLS: put Caddy / a load balancer / Cloudflare in front and point
+   it at port 80, or bind port 443 and terminate in Nginx. Set `APP_URL` and
+   `CORS_ALLOWED_ORIGINS` to the final `https://` origin.
+
+5. Verify:
+```bash
+curl -i https://yourdomain.com/up          # expect 200
+./deploy/smoke-test.sh https://yourdomain.com
+```
+
+**Update an existing deployment:**
+```bash
+git pull && docker compose up -d --build --pull always
+```
+
+**Use the pre-built image instead of building on the server:** set
+`APP_IMAGE` in a `docker-compose.env` or exported shell variable to the
+pushed GHCR image, e.g. `APP_IMAGE=ghcr.io/yourorg/task-manager:latest`.
+
 ### Backend Deployment
 
 1. Set `.env` variables:
@@ -397,6 +460,30 @@ npm run build
 
 3. If you deploy the frontend to a separate static host instead, set
    `VITE_API_BASE_URL` to the API URL before building.
+
+### CI/CD (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on pushes to `main`:
+
+1. **test** — installs backend deps, runs `php artisan test` (in-memory SQLite),
+   installs frontend deps, and verifies `npm run build`.
+2. **docker** — builds the image and pushes it to GHCR as
+   `ghcr.io/<owner>/<repo>:latest` (and `:<sha>`).
+3. **deploy** *(optional)* — SSH deploys to your server, then runs the smoke
+   test. Enable it by adding repository secrets:
+   - `DEPLOY_HOST` — `user@server.example.com` (setting this enables the job)
+   - `DEPLOY_SSH_KEY` — private SSH key the server trusts
+   - `DEPLOY_DIR` — path to the checked-out repo on the server
+   - `DEPLOY_BASE_URL` — public URL to smoke test (e.g. `https://yourdomain.com`)
+
+The server uses `APP_IMAGE` to pull the pushed image instead of building:
+```bash
+export APP_IMAGE=ghcr.io/<owner>/<repo>:latest
+docker compose up -d --pull always
+```
+> **Note:** GHCR images are private to your account by default. After the first
+> push, either grant the server `read` access in the package settings or run
+> `docker login ghcr.io` on the server with a token that can read packages.
 
 ### Backups
 
