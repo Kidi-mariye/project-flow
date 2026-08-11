@@ -239,6 +239,12 @@ function LoginPage() {
               </label>
             )}
 
+            {loginMethod === 'password' && !challengeState && (
+              <p className="auth-footer" style={{ marginTop: '0' }}>
+                <Link to="/forgot-password" className="link-primary">Forgot password?</Link>
+              </p>
+            )}
+
             {loginMethod === 'oauth' && availableProviders.length > 0 && !challengeState && (
               <label>
                 Provider
@@ -286,6 +292,12 @@ function LoginPage() {
               </p>
             )}
           </form>
+
+          <p className="auth-footer">
+            <Link to="/privacy" className="link-primary">Privacy</Link>
+            {' · '}
+            <Link to="/terms" className="link-primary">Terms</Link>
+          </p>
         </section>
       </section>
     </main>

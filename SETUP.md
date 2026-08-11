@@ -318,9 +318,33 @@ php artisan db:seed
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://yourdomain.com
+APP_NAME="Task Manager"
 ```
 
-2. Configure a real mail provider so 2FA codes and task reminders are actually
+2. Harden the production `.env`. Every item below is optional but strongly
+   recommended:
+```
+# Secure cookies + HTTPS
+SESSION_SECURE_COOKIE=true
+APP_FORCE_HTTPS=true
+TRUST_PROXIES=*            # or comma-separated proxy IPs/CIDRs (e.g. your load balancer / CDN)
+
+# CORS: only the origin(s) your frontend is served from. Comma-separated.
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+
+# Logging: warning+ only. `debug` leaks internals in production.
+LOG_LEVEL=warning
+LOG_CHANNEL=daily
+```
+   - `APP_FORCE_HTTPS` redirects HTTP to HTTPS and adds an HSTS header.
+   - `TRUST_PROXIES` tells Laravel to honor `X-Forwarded-Proto`/`X-Forwarded-For`
+     from your proxy, so HTTPS detection and client IPs are correct behind a
+     load balancer, reverse proxy, or CDN.
+   - `SESSION_SECURE_COOKIE` only sends the session cookie over HTTPS.
+   - Leave `CORS_ALLOWED_ORIGINS` unset in local development (the default
+     localhost origins in `config/cors.php` are used).
+
+3. Configure a real mail provider so 2FA codes and task reminders are actually
    delivered (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
 ```
 MAIL_MAILER=smtp
@@ -332,7 +356,7 @@ MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=no-reply@yourdomain.com
 ```
 
-3. Run optimization:
+4. Run optimization:
 ```bash
 composer install --optimize-autoloader --no-dev
 php artisan config:cache
@@ -341,17 +365,18 @@ php artisan view:cache
 php artisan migrate --force
 ```
 
-4. Deploy using your preferred hosting service
+5. Deploy using your preferred hosting service
 
-5. Add a cron entry so scheduled tasks (email/database reminders) run every
-   minute. Without this, reminders are never sent:
+6. Add a cron entry so scheduled tasks (email/database reminders, nightly
+   backups) run every minute. Without this, reminders are never sent:
 ```bash
 * * * * * cd /path/to/backend && php artisan schedule:run >> /dev/null 2>&1
 ```
    On shared hosting, add this as a cron job in your host's control panel
-   (point it at the backend directory).
+   (point it at the backend directory). The scheduler runs the reminders
+   every minute and a database backup daily at 02:00 (see `routes/console.php`).
 
-6. Verify email delivery (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
+7. Verify email delivery (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
 ```bash
 php artisan tinker --execute="Mail::raw('Mail provider check', function (\$m) { \$m->to('you@example.com'); });"
 ```
@@ -372,6 +397,41 @@ npm run build
 
 3. If you deploy the frontend to a separate static host instead, set
    `VITE_API_BASE_URL` to the API URL before building.
+
+### Backups
+
+The scheduler creates a database + file backup every night at 02:00 and keeps
+the last 30 (`app:backup --prune=30`). Backups are written to
+`backend/storage/app/backups/<timestamp>/` and contain:
+- `database.sqlite` (plus `-wal`/`-shm` sidecars for a crash-consistent copy)
+- `.env`
+- `storage/app/private` and `storage/app/public` (uploaded files)
+
+Run a backup manually at any time:
+```bash
+php artisan app:backup
+```
+
+Copy the `backups` directory off the server periodically (off-site backup).
+To restore: replace `database.sqlite` while the app is stopped, then
+`php artisan migrate --force` and `php artisan config:clear`.
+
+### Monitoring & Health
+
+- **HTTP health check:** `GET /up` returns `200` when the app can serve
+  requests. Point an uptime monitor (UptimeRobot, Better Stack, etc.) at it.
+- **CLI health check:** `php artisan app:health` verifies the database is
+  reachable and storage is writable; exits `0` on success, `1` on failure
+  (usable from cron/monitoring scripts).
+- **Logs:** check `backend/storage/logs/laravel.log` (rotate with
+  `LOG_CHANNEL=daily`, which keeps 14 days by default).
+- **Security notes:**
+  - Rate limits are applied to all auth endpoints
+    (`auth-login` 10/min, `auth-register` 5/hour, `auth-challenge` and
+    `auth-reset` 5/min per IP) — see `AppServiceProvider::boot()`.
+  - Password reset codes expire after 30 minutes; submitting a valid reset
+    revokes all existing API tokens for that account.
+  - Keep `APP_DEBUG=false` and a strong `APP_KEY` in production.
 
 ---
 
@@ -424,5 +484,5 @@ For issues or questions:
 
 ---
 
-**Last Updated:** May 8, 2026  
+**Last Updated:** August 11, 2026  
 **Version:** 1.0

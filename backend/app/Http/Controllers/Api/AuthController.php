@@ -39,6 +39,11 @@ class AuthController extends Controller
         return 'auth-challenge:' . $challengeId;
     }
 
+    private function resetCodeKey(string $email): string
+    {
+        return 'password-reset:' . strtolower($email);
+    }
+
     private function createChallenge(User $user, string $purpose, ?string $provider = null): array
     {
         $challengeId = (string) Str::uuid();
@@ -232,6 +237,71 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logged out successfully.',
+        ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        // Respond identically whether or not the account exists so the
+        // endpoint cannot be used to enumerate registered addresses.
+        if ($user) {
+            $code = (string) random_int(100000, 999999);
+
+            Cache::put($this->resetCodeKey($user->email), [
+                'code' => $code,
+                'created_at' => now(),
+            ], now()->addMinutes(30));
+
+            $this->sendChallengeEmail($user, $code, 'password-reset');
+        }
+
+        return response()->json([
+            'message' => 'If that email address is registered, a password reset code has been sent.',
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'verification_code' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $stored = Cache::get($this->resetCodeKey($validated['email']));
+
+        if (! $stored || ! hash_equals((string) $stored['code'], (string) $validated['verification_code'])) {
+            throw ValidationException::withMessages([
+                'verification_code' => ['The reset code is invalid or expired.'],
+            ]);
+        }
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['No account was found for that email address.'],
+            ]);
+        }
+
+        // password is cast to "hashed", so the new value is hashed on save.
+        $user->password = $validated['password'];
+        $user->save();
+
+        Cache::forget($this->resetCodeKey($user->email));
+
+        // Invalidate existing sessions/tokens so the old password can't be
+        // used through an already-issued token.
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Your password has been reset. You can now log in.',
         ]);
     }
 }

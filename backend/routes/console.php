@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('tasks:send-reminders')->everyMinute();
+Schedule::command('app:backup --prune=30')->dailyAt('02:00');

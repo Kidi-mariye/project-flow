@@ -14,6 +14,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
     Route::post('/login-options', [AuthController::class, 'loginOptions'])->middleware('throttle:auth-login');
     Route::post('/verify-login', [AuthController::class, 'verifyLoginChallenge'])->middleware('throttle:auth-challenge');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-reset');
 });
 
 Route::middleware('auth:sanctum')->group(function () {

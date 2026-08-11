@@ -36,5 +36,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-challenge', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        // Password reset code requests and code validation attempts.
+        RateLimiter::for('auth-reset', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }
