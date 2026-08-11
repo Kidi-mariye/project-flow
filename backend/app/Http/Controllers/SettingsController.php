@@ -7,6 +7,67 @@ use Illuminate\Http\JsonResponse;
 
 class SettingsController extends Controller
 {
+    private function defaultSettings(): array
+    {
+        return [
+            'general' => [
+                'languageRegion' => 'English (US)',
+                'timeFormat' => '24h',
+                'theme' => 'light',
+            ],
+            'projects' => [
+                'defaultPriority' => 'medium',
+                'defaultDueDate' => 'none',
+                'customStatuses' => 'todo, inprogress, completed',
+                'recurringTaskOption' => 'weekly',
+            ],
+            'notifications' => [
+                'enabled' => true,
+                'reminderTiming' => '10',
+                'quietHoursStart' => '22:00',
+                'quietHoursEnd' => '07:00',
+                'channels' => [
+                    'email' => true,
+                    'sms' => false,
+                    'push' => true,
+                ],
+            ],
+            'collaboration' => [
+                'projectVisibility' => 'private',
+                'allowComments' => true,
+                'shareByLink' => false,
+            ],
+            'account' => [
+                'name' => '',
+                'email' => '',
+                'avatarUrl' => '',
+                'twoFactorEnabled' => false,
+                'loginMethod' => 'password',
+                'connectedAccounts' => [
+                    'google' => false,
+                    'microsoft' => false,
+                    'github' => false,
+                ],
+            ],
+            'dataSecurity' => [
+                'backupRestore' => 'manual',
+                'cloudSync' => 'none',
+                'retentionDays' => '0',
+                'encryptionLevel' => 'standard',
+            ],
+            'advanced' => [
+                'developerMode' => false,
+                'apiAccess' => false,
+                'betaFeatures' => false,
+            ],
+        ];
+    }
+
+    private function normalizeSettings(?array $settings): array
+    {
+        return array_replace_recursive($this->defaultSettings(), $settings ?? []);
+    }
+
     /**
      * Get the authenticated user's settings
      *
@@ -19,7 +80,7 @@ class SettingsController extends Controller
         
         return response()->json([
             'success' => true,
-            'data' => $user->settings ?? [],
+            'data' => $this->normalizeSettings($user->settings ?? null),
         ]);
     }
 
@@ -33,19 +94,27 @@ class SettingsController extends Controller
     {
         $user = $request->user();
         
-        // Validate that settings is an object/array
         $validated = $request->validate([
             'general' => 'nullable|array',
             'projects' => 'nullable|array',
             'notifications' => 'nullable|array',
             'collaboration' => 'nullable|array',
             'account' => 'nullable|array',
+            'account.name' => 'nullable|string|max:255',
+            'account.email' => 'nullable|email',
+            'account.avatarUrl' => 'nullable|string',
+            'account.twoFactorEnabled' => 'nullable|boolean',
+            'account.loginMethod' => 'nullable|in:password,magic-link,oauth',
+            'account.connectedAccounts' => 'nullable|array',
+            'account.connectedAccounts.google' => 'nullable|boolean',
+            'account.connectedAccounts.microsoft' => 'nullable|boolean',
+            'account.connectedAccounts.github' => 'nullable|boolean',
             'dataSecurity' => 'nullable|array',
             'advanced' => 'nullable|array',
         ]);
 
         // Merge new settings with existing settings using overwrite semantics
-        $currentSettings = $user->settings ?? [];
+        $currentSettings = $this->normalizeSettings($user->settings ?? null);
         $updatedSettings = array_replace_recursive($currentSettings, $validated);
 
         // Update user settings
@@ -76,7 +145,7 @@ class SettingsController extends Controller
 
         $user->name = $validated['name'];
 
-        $currentSettings = $user->settings ?? [];
+        $currentSettings = $this->normalizeSettings($user->settings ?? null);
         $updatedSettings = array_replace_recursive($currentSettings, [
             'account' => [
                 'name' => $validated['name'],

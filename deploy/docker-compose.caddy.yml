@@ -1,0 +1,40 @@
+# Optional TLS edge (recommended for production). Runs Caddy in front of the
+# Nginx `web` service, terminating TLS and auto-issuing/renewing Let's Encrypt
+# certificates. Add this file on top of the base compose file:
+#
+#   DOMAIN=yourdomain.com docker compose \
+#     -f docker-compose.yml -f deploy/docker-compose.caddy.yml up -d --build
+#
+# Requirements:
+#   - Docker Compose v2.24+ (for the `!override` merge tag; Ubuntu 24.04 and
+#     recent Docker Desktop/Engine installs ship this by default).
+#   - `DOMAIN` must resolve (DNS A record) to this server, or cert issuance
+#     will fail.
+#   - Ports 80 and 443 must be reachable from the internet.
+services:
+  # Nginx no longer needs to publish port 80 on the host — Caddy owns it.
+  web:
+    ports: !override []
+
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN to your public hostname, e.g. DOMAIN=app.example.com}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

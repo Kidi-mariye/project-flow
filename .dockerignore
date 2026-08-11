@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Local environments / secrets (injected at runtime via compose env_file)
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Dependencies (installed inside the image)
+**/node_modules
+backend/vendor
+
+# Local build artifacts
+frontend/dist
+backend/public/index.html
+backend/public/assets
+backend/public/favicon.svg
+
+# Local data / caches
+backend/storage/*
+backend/database/*.sqlite*
+backend/bootstrap/cache/*
+backend/phpunit.xml
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db

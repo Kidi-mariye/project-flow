@@ -6,7 +6,8 @@ import {
   loginUser,
   registerUser,
   logoutUser,
-  fetchCurrentUser
+  fetchCurrentUser,
+  verifyLoginChallenge,
 } from '../api'
 
 export const AuthContext = createContext()
@@ -39,17 +40,39 @@ export function AuthProvider({ children }) {
     checkAuth()
   }, [])
 
-  const login = async (email, password) => {
+  const login = async (payload) => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await loginUser({ email, password })
+      const response = await loginUser(payload)
+      if (response?.token) {
+        setStoredToken(response.token)
+        setCurrentUser(response.user)
+        setIsAuthenticated(true)
+      }
+      return response
+    } catch (err) {
+      setError(err.message || 'Login failed')
+      throw err
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const completeLoginChallenge = async (challengeId, verificationCode) => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await verifyLoginChallenge({
+        challenge_id: challengeId,
+        verification_code: verificationCode,
+      })
       setStoredToken(response.token)
       setCurrentUser(response.user)
       setIsAuthenticated(true)
       return response
     } catch (err) {
-      setError(err.message || 'Login failed')
+      setError(err.message || 'Verification failed')
       throw err
     } finally {
       setIsLoading(false)
@@ -95,6 +118,7 @@ export function AuthProvider({ children }) {
     isLoading,
     error,
     login,
+    completeLoginChallenge,
     register,
     logout,
     setCurrentUser: updateCurrentUser,

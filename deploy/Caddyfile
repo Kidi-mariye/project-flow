@@ -1,0 +1,7 @@
+# TLS terminator. Auto-issues and renews Let's Encrypt certificates for the
+# configured domain and reverse-proxies to the Nginx service.
+#
+# `DOMAIN` is injected by docker-compose.caddy.yml from the ${DOMAIN} variable.
+{$DOMAIN} {
+    reverse_proxy web:80
+}

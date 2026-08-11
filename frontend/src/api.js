@@ -99,6 +99,26 @@ export async function loginUser(payload) {
   return data
 }
 
+export async function fetchLoginOptions(email) {
+  const { data } = await api.post('/auth/login-options', { email })
+  return data
+}
+
+export async function verifyLoginChallenge(payload) {
+  const { data } = await api.post('/auth/verify-login', payload)
+  return data
+}
+
+export async function forgotPassword(email) {
+  const { data } = await api.post('/auth/forgot-password', { email })
+  return data
+}
+
+export async function resetPassword(payload) {
+  const { data } = await api.post('/auth/reset-password', payload)
+  return data
+}
+
 export async function logoutUser() {
   const { data } = await api.post('/auth/logout', {})
   return data
@@ -144,6 +164,21 @@ export async function deleteTask(taskId) {
 
 export async function fetchCategories() {
   const { data } = await api.get('/categories')
+  return data
+}
+
+export async function createCategory(payload) {
+  const { data } = await api.post('/categories', payload)
+  return data
+}
+
+export async function updateCategory(categoryId, payload) {
+  const { data } = await api.put(`/categories/${categoryId}`, payload)
+  return data
+}
+
+export async function deleteCategory(categoryId) {
+  const { data } = await api.delete(`/categories/${categoryId}`)
   return data
 }
 

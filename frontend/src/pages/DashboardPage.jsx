@@ -218,6 +218,20 @@ function DashboardPage() {
     },
   }), [])
 
+  const activeProjects = useMemo(() => {
+    return tasks.filter((task) => {
+      const progressPercent = typeof task.progress_percent !== 'undefined' && task.progress_percent !== null
+        ? Number(task.progress_percent)
+        : (task.completed ? 100 : 0)
+
+      return progressPercent < 100 && !task.completed
+    })
+  }, [tasks])
+
+  const openTasks = useMemo(() => {
+    return tasks.filter((task) => !task.completed)
+  }, [tasks])
+
   return (
     <div className="dash">
       <div className="content">
@@ -355,7 +369,7 @@ function DashboardPage() {
             <div className="row3">
               <div className="card">
                 <div className="card-hd"><span className="card-title">All projects</span><button type="button" className="card-link" onClick={() => navigate('/tasks')}>View all →</button></div>
-                {tasks.slice(0,5).map((t, i) => {
+                {activeProjects.slice(0,5).map((t, i) => {
                   const progressPercent = typeof t.progress_percent !== 'undefined' && t.progress_percent !== null
                     ? Number(t.progress_percent)
                     : (t.completed ? 100 : 0)
@@ -374,7 +388,7 @@ function DashboardPage() {
 
               <div className="card">
                 <div className="card-hd"><span className="card-title">My tasks</span><button type="button" className="card-link" onClick={() => navigate('/create-task')}>+ Add</button></div>
-                {tasks.slice(0,5).map((t) => (
+                {openTasks.slice(0,5).map((t) => (
                   <div className={`trow ${t.completed ? 'done' : ''}`} key={`t-${t.id}`}>
                     <div className={`chk ${t.completed ? 'done' : ''}`}>{t.completed ? '✓' : null}</div>
                     <div className={`ttext ${t.completed ? 'done' : ''}`}>{t.title}</div>

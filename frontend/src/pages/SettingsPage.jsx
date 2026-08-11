@@ -6,7 +6,7 @@ import { updateUserProfile } from '../api'
 
 function SettingsPage() {
   const location = useLocation()
-  const { settings, isLoading, error, isSaving, saveError, loadSettings, updateSetting } = useSettings()
+  const { settings, isLoading, error, isSaving, saveError, loadSettings, updateSetting, updateNestedSetting } = useSettings()
   const { currentUser, setCurrentUser } = useAuth()
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'general')
   const [profileForm, setProfileForm] = useState({ name: '', avatarUrl: '' })
@@ -95,6 +95,14 @@ function SettingsPage() {
       await updateSetting(section, key, value)
     } catch (err) {
       console.error('Failed to update setting:', err)
+    }
+  }
+
+  const handleNestedSettingChange = async (section, nested, key, value) => {
+    try {
+      await updateNestedSetting(section, nested, key, value)
+    } catch (err) {
+      console.error('Failed to update nested setting:', err)
     }
   }
 
@@ -335,6 +343,42 @@ function SettingsPage() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: '16px' }}>
+                <label>Login Method</label>
+                <select
+                  value={settings.account.loginMethod || 'password'}
+                  onChange={(e) => handleSettingChange('account', 'loginMethod', e.target.value)}
+                  className="form-input"
+                >
+                  <option value="password">Password</option>
+                  <option value="magic-link">Magic Link</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label>Connected Accounts</label>
+                <div style={{ display: 'grid', gap: '12px', marginTop: '8px' }}>
+                  {[
+                    { key: 'google', label: 'Google' },
+                    { key: 'microsoft', label: 'Microsoft' },
+                    { key: 'github', label: 'GitHub' },
+                  ].map((account) => (
+                    <div key={account.key} className="settings-toggle-row">
+                      <input
+                        type="checkbox"
+                        checked={settings.account.connectedAccounts?.[account.key] || false}
+                        onChange={(e) => handleNestedSettingChange('account', 'connectedAccounts', account.key, e.target.checked)}
+                        id={`account-${account.key}`}
+                        className="settings-toggle-input"
+                      />
+                      <label htmlFor={`account-${account.key}`} className="settings-toggle-label">
+                        Connect {account.label}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="settings-toggle-row">
                 <input
                   type="checkbox"
@@ -346,6 +390,10 @@ function SettingsPage() {
                 <label htmlFor="account-2fa" className="settings-toggle-label">
                   Two-Factor Authentication
                 </label>
+              </div>
+
+              <div className="notice" style={{ marginTop: '12px' }}>
+                Email is managed through your profile. Magic-link and two-factor codes are sent to your email.
               </div>
             </div>
           )}

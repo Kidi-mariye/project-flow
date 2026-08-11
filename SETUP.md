@@ -137,7 +137,14 @@ APP_DEBUG=true
 DB_CONNECTION=sqlite
 SANCTUM_STATEFUL_DOMAINS=localhost:5173,localhost:3000
 SESSION_DOMAIN=localhost
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS=hello@example.com
+MAIL_FROM_NAME="${APP_NAME}"
 ```
+
+For production, replace `MAIL_MAILER=log` with a real mailer (SMTP or a provider)
+and set `MAIL_FROM_ADDRESS` to a verified address. See [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)
+for the provider checklist.
 
 ### Frontend (.env.local)
 
@@ -304,6 +311,73 @@ php artisan db:seed
 
 ## Production Deployment
 
+### Docker Deployment (recommended)
+
+> **Follow [DEPLOY.md](./DEPLOY.md)** for the full step-by-step server runbook
+> (DNS, VPS setup, TLS via Caddy, email verification, backups, launch
+> checklist). This section summarizes the configuration.
+
+The repo ships a containerized setup (`backend/Dockerfile`,
+`docker-compose.yml`, `.dockerignore`) that runs Nginx + PHP-FPM, the Laravel
+scheduler, and a queue worker. The SPA is built **inside** the image, so a
+`git pull` is all you need on the server.
+
+**Requirements on the host:** Docker + Docker Compose plugin (any VPS or cloud
+VM, e.g. DigitalOcean, Hetzner, Lightsail).
+
+1. Clone the repo and create the environment file:
+```bash
+git clone <repo-url> && cd Task\ Manager
+cp backend/.env.example backend/.env
+```
+2. Fill in production values in `backend/.env` (see "Backend Deployment"
+   below for the full list). At minimum:
+```
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+APP_KEY=<run: php artisan key:generate --show and paste the output>
+MAIL_MAILER=smtp        # real provider, see MAIL_PROVIDERS.md
+MAIL_HOST=smtp.yourprovider.com
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+SESSION_SECURE_COOKIE=true
+APP_FORCE_HTTPS=true
+TRUST_PROXIES=*
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+LOG_LEVEL=warning
+LOG_CHANNEL=daily
+```
+   `APP_KEY` is not in the compose file on purpose: if it is missing, the
+   container generates one and persists it in the shared storage volume.
+
+3. Start the stack:
+```bash
+docker compose up -d --build
+```
+   First boot runs `php artisan migrate --force` automatically and builds the
+   Laravel caches. On subsequent starts nothing is re-migrated.
+
+4. Terminate TLS: put Caddy / a load balancer / Cloudflare in front and point
+   it at port 80, or bind port 443 and terminate in Nginx. Set `APP_URL` and
+   `CORS_ALLOWED_ORIGINS` to the final `https://` origin.
+
+5. Verify:
+```bash
+curl -i https://yourdomain.com/up          # expect 200
+./deploy/smoke-test.sh https://yourdomain.com
+```
+
+**Update an existing deployment:**
+```bash
+git pull && docker compose up -d --build --pull always
+```
+
+**Use the pre-built image instead of building on the server:** set
+`APP_IMAGE` in a `docker-compose.env` or exported shell variable to the
+pushed GHCR image, e.g. `APP_IMAGE=ghcr.io/yourorg/task-manager:latest`.
+
 ### Backend Deployment
 
 1. Set `.env` variables:
@@ -311,9 +385,45 @@ php artisan db:seed
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://yourdomain.com
+APP_NAME="Task Manager"
 ```
 
-2. Run optimization:
+2. Harden the production `.env`. Every item below is optional but strongly
+   recommended:
+```
+# Secure cookies + HTTPS
+SESSION_SECURE_COOKIE=true
+APP_FORCE_HTTPS=true
+TRUST_PROXIES=*            # or comma-separated proxy IPs/CIDRs (e.g. your load balancer / CDN)
+
+# CORS: only the origin(s) your frontend is served from. Comma-separated.
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+
+# Logging: warning+ only. `debug` leaks internals in production.
+LOG_LEVEL=warning
+LOG_CHANNEL=daily
+```
+   - `APP_FORCE_HTTPS` redirects HTTP to HTTPS and adds an HSTS header.
+   - `TRUST_PROXIES` tells Laravel to honor `X-Forwarded-Proto`/`X-Forwarded-For`
+     from your proxy, so HTTPS detection and client IPs are correct behind a
+     load balancer, reverse proxy, or CDN.
+   - `SESSION_SECURE_COOKIE` only sends the session cookie over HTTPS.
+   - Leave `CORS_ALLOWED_ORIGINS` unset in local development (the default
+     localhost origins in `config/cors.php` are used).
+
+3. Configure a real mail provider so 2FA codes and task reminders are actually
+   delivered (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
+```
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.yourprovider.com
+MAIL_PORT=587
+MAIL_USERNAME=your-username
+MAIL_PASSWORD=your-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=no-reply@yourdomain.com
+```
+
+4. Run optimization:
 ```bash
 composer install --optimize-autoloader --no-dev
 php artisan config:cache
@@ -322,16 +432,97 @@ php artisan view:cache
 php artisan migrate --force
 ```
 
-3. Deploy using your preferred hosting service
+5. Deploy using your preferred hosting service
+
+6. Add a cron entry so scheduled tasks (email/database reminders, nightly
+   backups) run every minute. Without this, reminders are never sent:
+```bash
+* * * * * cd /path/to/backend && php artisan schedule:run >> /dev/null 2>&1
+```
+   On shared hosting, add this as a cron job in your host's control panel
+   (point it at the backend directory). The scheduler runs the reminders
+   every minute and a database backup daily at 02:00 (see `routes/console.php`).
+
+7. Verify email delivery (see [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md)):
+```bash
+php artisan tinker --execute="Mail::raw('Mail provider check', function (\$m) { \$m->to('you@example.com'); });"
+```
 
 ### Frontend Deployment
 
-1. Build for production:
+1. Build for production. The build output is written into `backend/public/`
+   so Laravel serves the SPA directly (no separate static host needed):
 ```bash
+cd frontend
 npm run build
 ```
 
-2. Deploy the `dist/` directory to your hosting service
+2. Serve the backend with your web server pointing its document root at
+   `backend/public/`. The SPA routes and `/api/*` both work from that root;
+   client-side routes (e.g. `/dashboard`) are handled by
+   `backend/routes/web.php`.
+
+3. If you deploy the frontend to a separate static host instead, set
+   `VITE_API_BASE_URL` to the API URL before building.
+
+### CI/CD (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on pushes to `main`:
+
+1. **test** — installs backend deps, runs `php artisan test` (in-memory SQLite),
+   installs frontend deps, and verifies `npm run build`.
+2. **docker** — builds the image and pushes it to GHCR as
+   `ghcr.io/<owner>/<repo>:latest` (and `:<sha>`).
+3. **deploy** *(optional)* — SSH deploys to your server, then runs the smoke
+   test. Enable it by adding repository secrets:
+   - `DEPLOY_HOST` — `user@server.example.com` (setting this enables the job)
+   - `DEPLOY_SSH_KEY` — private SSH key the server trusts
+   - `DEPLOY_DIR` — path to the checked-out repo on the server
+   - `DEPLOY_BASE_URL` — public URL to smoke test (e.g. `https://yourdomain.com`)
+
+The server uses `APP_IMAGE` to pull the pushed image instead of building:
+```bash
+export APP_IMAGE=ghcr.io/<owner>/<repo>:latest
+docker compose up -d --pull always
+```
+> **Note:** GHCR images are private to your account by default. After the first
+> push, either grant the server `read` access in the package settings or run
+> `docker login ghcr.io` on the server with a token that can read packages.
+
+### Backups
+
+The scheduler creates a database + file backup every night at 02:00 and keeps
+the last 30 (`app:backup --prune=30`). Backups are written to
+`backend/storage/app/backups/<timestamp>/` and contain:
+- `database.sqlite` (plus `-wal`/`-shm` sidecars for a crash-consistent copy)
+- `.env`
+- `storage/app/private` and `storage/app/public` (uploaded files)
+
+Run a backup manually at any time:
+```bash
+php artisan app:backup
+```
+
+Copy the `backups` directory off the server periodically (off-site backup).
+To restore: replace `database.sqlite` while the app is stopped, then
+`php artisan migrate --force` and `php artisan config:clear`.
+
+### Monitoring & Health
+
+- **HTTP health check:** `GET /up` returns `200` when the app can serve
+  requests. Point an uptime monitor (UptimeRobot, Better Stack, etc.) at it.
+- **CLI health check:** `php artisan app:health` verifies the database is
+  reachable and storage is writable; exits `0` on success, `1` on failure
+  (usable from cron/monitoring scripts).
+- **Logs:** check `backend/storage/logs/laravel.log` (rotate with
+  `LOG_CHANNEL=daily`, which keeps 14 days by default).
+- **Security notes:**
+  - Rate limits are applied to all auth endpoints
+    (`auth-login` 10/min, `auth-register` 5/hour, `auth-challenge` and
+    `auth-reset` 5/min per IP) — see `AppServiceProvider::boot()`.
+  - Password reset codes expire after 30 minutes; submitting a valid reset
+    revokes all existing API tokens for that account.
+  - Keep `APP_DEBUG=false` and a strong `APP_KEY` in production.
 
 ---
 
@@ -369,8 +560,10 @@ When contributing to this project:
 ## Next Steps
 
 After setup, review:
+- [DEPLOY.md](./DEPLOY.md) - Production deployment runbook (DNS, VPS, TLS, backups)
 - [API.md](./API.md) - Complete API documentation
 - [MVC_ANALYSIS.md](./MVC_ANALYSIS.md) - Architecture analysis and next improvements
+- [MAIL_PROVIDERS.md](./MAIL_PROVIDERS.md) - Mail provider checklist (required before production)
 
 ---
 
@@ -383,5 +576,5 @@ For issues or questions:
 
 ---
 
-**Last Updated:** May 8, 2026  
+**Last Updated:** August 11, 2026  
 **Version:** 1.0

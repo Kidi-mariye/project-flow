@@ -169,6 +169,12 @@ function RegisterPage() {
           <p className="auth-footer">
             Already have an account? <Link to="/login" className="link-primary">Login</Link>
           </p>
+
+          <p className="auth-footer">
+            <Link to="/privacy" className="link-primary">Privacy</Link>
+            {' · '}
+            <Link to="/terms" className="link-primary">Terms</Link>
+          </p>
         </section>
       </section>
     </main>

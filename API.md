@@ -112,6 +112,65 @@ Authorization: Bearer {token}
 
 ---
 
+### Forgot Password
+
+Request a 6-digit password reset code by email.
+
+**Endpoint:** `POST /auth/forgot-password`
+
+**Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:** 200 OK
+```json
+{
+  "message": "If that email address is registered, a password reset code has been sent."
+}
+```
+
+**Notes:**
+- Responds identically for unknown addresses (prevents account enumeration).
+- Rate limited to 5 requests per minute per IP (`auth-reset`).
+- The code expires after 30 minutes and is emailed by the configured mail provider.
+
+---
+
+### Reset Password
+
+Exchange a reset code for a new password.
+
+**Endpoint:** `POST /auth/reset-password`
+
+**Body:**
+```json
+{
+  "email": "user@example.com",
+  "verification_code": "650957",
+  "password": "new-password-1",
+  "password_confirmation": "new-password-1"
+}
+```
+
+**Response:** 200 OK
+```json
+{
+  "message": "Your password has been reset. You can now log in."
+}
+```
+
+**Error Responses:**
+- `422 Unprocessable Entity` - Invalid/expired code, password too short, or passwords do not match
+
+**Notes:**
+- Rate limited to 5 requests per minute per IP (`auth-reset`).
+- All existing API tokens for the account are revoked on a successful reset.
+
+---
+
 ## User Endpoints
 
 ### Get Current User
@@ -672,19 +731,30 @@ Authorization: Bearer {token}
 
 ## Rate Limiting
 
-Currently, there is no rate limiting configured. This is recommended for production environments.
+Authentication endpoints are throttled per IP (configured in `AppServiceProvider::boot()` and applied in `routes/api.php`):
+
+| Limiter | Route(s) | Limit |
+|---------|----------|-------|
+| `auth-login` | `POST /auth/login`, `POST /auth/login-options` | 10 per minute |
+| `auth-register` | `POST /auth/register` | 5 per hour |
+| `auth-challenge` | `POST /auth/verify-login` | 5 per minute |
+| `auth-reset` | `POST /auth/forgot-password`, `POST /auth/reset-password` | 5 per minute |
+
+When a limit is exceeded, the API returns `429 Too Many Requests`.
 
 ---
 
 ## CORS Configuration
 
-The API supports CORS requests from:
-- `http://localhost:5173` (Vite dev server)
-- `http://127.0.0.1:5173`
-- `http://localhost:3000` (Alternative dev port)
-- `http://127.0.0.1:3000`
+Allowed origins are read from the `CORS_ALLOWED_ORIGINS` environment variable
+(comma-separated). When unset, the local development origins are used
+(`http://localhost:5173`–`:5176`, `http://127.0.0.1:5173`–`:5176`, and ports
+`3000`).
 
-Add your production domain to `config/cors.php` for production deployments.
+For production, set `CORS_ALLOWED_ORIGINS` to your frontend origin(s), e.g.:
+```
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+```
 
 ---
 

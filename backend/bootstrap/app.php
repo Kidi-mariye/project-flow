@@ -17,6 +17,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 \Illuminate\Http\Middleware\HandleCors::class,
             ],
         );
+
+        // Trust proxies (load balancer / CDN / reverse proxy) so scheme,
+        // host, and IP headers are honored. Set TRUST_PROXIES to "*" or a
+        // comma-separated list of proxy IPs/CIDRs in production.
+        $trustedProxies = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUST_PROXIES', '')),
+        )));
+
+        if ($trustedProxies !== []) {
+            $middleware->trustProxies(at: $trustedProxies);
+        }
+
+        // Optional HTTPS enforcement (see app/Http/Middleware/ForceHttps.php).
+        if (filter_var(env('APP_FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
+            $middleware->prepend(\App\Http\Middleware\ForceHttps::class);
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

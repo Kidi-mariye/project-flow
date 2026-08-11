@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { fetchUserSettings, updateUserSettings } from '../api'
 import { useFetch } from './useFetch'
 import { getStoredSettings, saveStoredSettings } from '../utils/helpers'
@@ -65,12 +65,18 @@ export function useSettings() {
     fetchUserSettings,
     getStoredSettings() || DEFAULT_SETTINGS
   )
+  const settingsRef = useRef(settings || DEFAULT_SETTINGS)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+
+  useEffect(() => {
+    settingsRef.current = settings || DEFAULT_SETTINGS
+  }, [settings])
 
   const loadSettings = useCallback(async () => {
     try {
       const loaded = await refetch()
+      settingsRef.current = loaded
       saveStoredSettings(loaded)
       window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: loaded }))
       return loaded
@@ -85,9 +91,11 @@ export function useSettings() {
   const saveSettings = useCallback(async (newSettings) => {
     setIsSaving(true)
     setSaveError(null)
+    settingsRef.current = newSettings
     try {
       const saved = await updateUserSettings(newSettings)
       setData(saved)
+      settingsRef.current = saved
       saveStoredSettings(saved)
       window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: saved }))
       return saved
@@ -100,29 +108,31 @@ export function useSettings() {
   }, [setData])
 
   const updateSetting = useCallback(async (section, key, value) => {
+    const baseSettings = settingsRef.current || DEFAULT_SETTINGS
     const updated = {
-      ...settings,
+      ...baseSettings,
       [section]: {
-        ...settings[section],
+        ...baseSettings[section],
         [key]: value,
       },
     }
     return saveSettings(updated)
-  }, [settings, saveSettings])
+  }, [saveSettings])
 
   const updateNestedSetting = useCallback(async (section, nested, key, value) => {
+    const baseSettings = settingsRef.current || DEFAULT_SETTINGS
     const updated = {
-      ...settings,
+      ...baseSettings,
       [section]: {
-        ...settings[section],
+        ...baseSettings[section],
         [nested]: {
-          ...settings[section][nested],
+          ...baseSettings[section][nested],
           [key]: value,
         },
       },
     }
     return saveSettings(updated)
-  }, [settings, saveSettings])
+  }, [saveSettings])
 
   return {
     settings,
